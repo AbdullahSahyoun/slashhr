@@ -1,0 +1,13 @@
+# Byte-compiled / virtual envs
+__pycache__/
+*.pyc
+venv/
+
+# Environment variables
+.env
+
+# Node modules (if you have React here too)
+node_modules/
+
+# OS files
+.DS_Store
