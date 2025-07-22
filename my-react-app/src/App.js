@@ -1,23 +1,26 @@
-import logo from './logo.svg';
 import './App.css';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Auth from './pages/auth/auth';
+import Dashboard from './pages/dashboard/dashboard';
 
 function App() {
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <Router>
+        <Routes>
+          {/* Redirect root to /auth */}
+          <Route path="/" element={<Navigate to="/auth" replace />} />
+
+          {/* Auth page */}
+          <Route path="/auth" element={<Auth />} />
+
+          {/* Dashboard page */}
+          <Route path="/dashboard" element={<Dashboard />} />
+
+          {/* Fallback for 404 */}
+          <Route path="*" element={<div>404 - Page Not Found</div>} />
+        </Routes>
+      </Router>
     </div>
   );
 }

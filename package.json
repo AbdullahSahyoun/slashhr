@@ -11,6 +11,9 @@
   "dependencies": {
     "@googlemaps/google-maps-services-js": "^3.4.2",
     "@react-google-maps/api": "^2.20.7",
-    "express": "^5.1.0"
+    "bcrypt": "^6.0.0",
+    "express": "^5.1.0",
+    "pg": "^8.16.3",
+    "sequelize": "^6.37.7"
   }
 }

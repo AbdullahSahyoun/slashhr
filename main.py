@@ -1,26 +1,30 @@
-from fastapi import FastAPI, Depends, HTTPException
-from sqlalchemy.orm import Session
-from sqlalchemy import text  # ✅ Import this!
-from database import SessionLocal  # your DB connection
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
-app = FastAPI()
+app = FastAPI(
+    title="SLASHHR FastAPI Backend",
+    description="FastAPI server running with no API routes",
+    version="1.0.0",
+)
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+# ✅ Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],  # React dev server
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
+# ✅ Serve static files (optional)
+app.mount("/static", StaticFiles(directory="public"), name="static")
+
+# ✅ Jinja2 templates (if you use HTML later)
+templates = Jinja2Templates(directory="public")
+
+# ✅ Optional root route (or remove it too)
 @app.get("/")
-def read_root():
-    return {"message": "Hello World from FastAPI!"}
-
-@app.get("/test-connection")
-def test_connection(db: Session = Depends(get_db)):
-    try:
-        db.execute(text("SELECT 1"))
-        return {"status": "Connection successful!"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
+def root():
+    return {"status": "FastAPI server is running without any APIs."}
