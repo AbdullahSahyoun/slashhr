@@ -30,83 +30,87 @@ const EmployeeProfessionalContractsPage = () => {
   return (
     <div className="flex w-full min-h-screen bg-global-1">
       {/* Sidebar */}
-      <div className="w-full lg:w-[14%] bg-sidebar-2 border-r-2 border-[#e4e4e4] flex flex-col">
-        {/* Logo */}
-        <div className="pt-6 pr-[22px] pl-[22px] mt-1">
-          <img 
-            src="/images/img_arrow_down.svg" 
-            alt="SlasHR Logo" 
-            className="w-full h-[88px] object-contain"
-          />
-        </div>
+   <div className="w-full lg:w-[14%] bg-sidebar-2 border-r-2 border-[#e4e4e4] flex flex-col justify-between h-screen">
+  {/* Top Content (Logo + Search + Menu) */}
+  <div>
+    {/* Logo */}
+    <div className="pt-6 pr-[22px] pl-[22px] mt-1">
+      <img 
+        src="/images/img_arrow_down.svg" 
+        alt="SlasHR Logo" 
+        className="w-full h-[88px] object-contain"
+      />
+    </div>
 
-        {/* Search */}
-        <div className="mt-5 px-6">
-          <div className="flex items-center bg-global-3 rounded-lg px-3 py-3">
-            <img 
-              src="/images/img_search.svg" 
-              alt="search" 
-              className="w-3 h-3"
-            />
-            <input 
-              type="text" 
-              placeholder="Search....." 
-              className="ml-3 bg-transparent text-global-5 placeholder-global-5 text-base font-poppins font-semibold leading-[25px] outline-none flex-1"
-            />
-          </div>
-        </div>
-
-        {/* Menu Items */}
-        <div className="mt-5 px-6 flex-1">
-          <div className="space-y-5">
-            {menuItems.map((item, index) => (
-              <div 
-                key={index}
-                className={`flex items-center px-2 py-2 rounded ${
-                  item.active ? 'bg-global-3' : ''
-                }`}
-              >
-                <img 
-                  src={item.icon} 
-                  alt={item.text} 
-                  className="w-5 h-5"
-                />
-                <span className={`ml-4 text-base font-poppins font-semibold leading-[25px] ${
-                  item.active ? 'text-global-5' : 'text-global-3'
-                }`}>
-                  {item.text}
-                </span>
-                {item.badge && (
-                  <div className="ml-auto bg-sidebar-1 rounded-md px-2 py-1">
-                    <span className="text-xs font-inter font-bold text-global-5">
-                      {item.badge}
-                    </span>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* User Dropdown */}
-        <div className="px-[22px] pb-6">
-          <Dropdown
-            placeholder="Manal Battache"
-            className="w-full"
-            rightImage={{
-              src: "/images/img_icons_16px_arrow_down.svg",
-              width: 16,
-              height: 16
-            }}
-            options={[
-              { value: 'manal', label: 'Manal Battache' },
-              { value: 'profile', label: 'View Profile' },
-              { value: 'settings', label: 'Settings' },
-              { value: 'logout', label: 'Logout' }
-            ]}
-          />
-        </div>
+    {/* Search */}
+    <div className="mt-5 px-6">
+      <div className="flex items-center bg-global-3 rounded-lg px-3 py-3">
+        <img 
+          src="/images/img_search.svg" 
+          alt="search" 
+          className="w-3 h-3"
+        />
+        <input 
+          type="text" 
+          placeholder="Search....." 
+          className="ml-3 bg-transparent text-global-5 placeholder-global-5 text-base font-poppins font-semibold leading-[25px] outline-none flex-1"
+        />
       </div>
+    </div>
+
+    {/* Menu Items */}
+    <div className="mt-5 px-6">
+      <div className="space-y-5">
+        {menuItems.map((item, index) => (
+          <div 
+            key={index}
+            className={`flex items-center px-2 py-2 rounded ${
+              item.active ? 'bg-global-3' : ''
+            }`}
+          >
+            <img 
+              src={item.icon} 
+              alt={item.text} 
+              className="w-5 h-5"
+            />
+            <span className={`ml-4 text-base font-poppins font-semibold leading-[25px] ${
+              item.active ? 'text-global-5' : 'text-global-3'
+            }`}>
+              {item.text}
+            </span>
+            {item.badge && (
+              <div className="ml-auto bg-sidebar-1 rounded-md px-2 py-1">
+                <span className="text-xs font-inter font-bold text-global-5">
+                  {item.badge}
+                </span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  {/* Bottom: Dropdown */}
+  <div className="px-[22px] pb-6">
+    <Dropdown
+      placeholder="Manal Battache"
+      className="w-full"
+      rightImage={{
+        src: "/images/img_icons_16px_arrow_down.svg",
+        width: 16,
+        height: 16
+      }}
+      options={[
+        { value: 'manal', label: 'Manal Battache' },
+        { value: 'profile', label: 'View Profile' },
+        { value: 'settings', label: 'Settings' },
+        { value: 'logout', label: 'Logout' }
+      ]}
+    />
+  </div>
+</div>
+
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
