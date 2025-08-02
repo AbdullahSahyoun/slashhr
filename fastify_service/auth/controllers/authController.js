@@ -1,45 +1,94 @@
 import bcrypt from 'bcrypt';
+import crypto from 'crypto';
+import {
+  findUserByEmail,
+  insertOtpCode,
+  verifyOtpCode as verifyOtpCodeDb
+} from '../models/userModel.js';
+import { sendEmail } from '../utils/sendEmail.js';
 
+// 1️⃣ Login with email + password
 export async function login(request, reply) {
   const { email, password } = request.body;
+  const fastify = request.server;
 
-  try {
-    const client = await request.server.pg.connect();
-
-    const query = `
-      SELECT "UserID", "TenantID", "Email", "PasswordHash"
-      FROM "user"."tblUser"
-      WHERE "Email" = $1
-      LIMIT 1
-    `;
-
-    const { rows } = await client.query(query, [email]);
-    client.release();
-
-    // ✅ Fix: Check rows.length instead of relying on user = rows[0]
-    if (!rows.length) {
-      return reply.code(401).send({ error: 'User not found' });
-    }
-
-    const user = rows[0];
-
-    const match = await bcrypt.compare(password, user.PasswordHash);
-
-    if (!match) {
-      return reply.code(401).send({ error: 'Invalid password' });
-    }
-
-    return reply.send({
-      token: 'fake-token', // Replace with real JWT if needed
-      user: {
-        id: user.UserID,
-        tenantId: user.TenantID,
-        email: user.Email
-      }
-    });
-
-  } catch (error) {
-    console.error('Login error:', error);
-    return reply.code(500).send({ error: 'Internal server error' });
+  const user = await findUserByEmail(fastify, email);
+  if (!user) {
+    return reply.code(401).send({ error: 'User not found' });
   }
+
+  const hash = user.PasswordHash;
+  if (!hash || typeof hash !== 'string') {
+    console.error('❌ Invalid hash value:', hash);
+    return reply.code(500).send({ error: 'User password hash is missing or invalid' });
+  }
+
+  const match = await bcrypt.compare(password, hash);
+  if (!match) {
+    return reply.code(401).send({ error: 'Invalid password' });
+  }
+
+  const token = fastify.jwt.sign(
+    {
+      id: user.UserID,
+      email: user.Email,
+      tenantId: user.TenantID,
+    },
+    { expiresIn: '1h' }
+  );
+
+  return reply.send({
+    token,
+    user: {
+      id: user.UserID,
+      email: user.Email,
+      tenantId: user.TenantID,
+    },
+  });
+}
+
+// 2️⃣ Request login code via email (OTP)
+export async function requestOtpLogin(request, reply) {
+  const { email } = request.body;
+  const fastify = request.server;
+
+  const user = await findUserByEmail(fastify, email);
+  if (!user) {
+    return reply.code(404).send({ error: 'User not found' });
+  }
+
+  const otp = crypto.randomInt(100000, 999999).toString();
+  await insertOtpCode(fastify, user.UserID, user.Email, otp);
+
+  await sendEmail(email, 'Your OTP Code', `Your login code is: ${otp}`);
+  return reply.send({ message: 'OTP code sent to your email.' });
+}
+
+// 3️⃣ Verify OTP and login
+export async function verifyOtpCodeHandler(request, reply) {
+  const { email, code } = request.body;
+  const fastify = request.server;
+
+  const user = await verifyOtpCodeDb(fastify, email, code);
+  if (!user) {
+    return reply.code(401).send({ error: 'Invalid or expired code' });
+  }
+
+  const token = fastify.jwt.sign(
+    {
+      id: user.UserID,
+      email: user.Email,
+      tenantId: user.TenantID,
+    },
+    { expiresIn: '1h' }
+  );
+
+  return reply.send({
+    token,
+    user: {
+      id: user.UserID,
+      email: user.Email,
+      tenantId: user.TenantID,
+    },
+  });
 }
