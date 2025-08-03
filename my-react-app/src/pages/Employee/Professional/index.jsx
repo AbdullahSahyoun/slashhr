@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import Dropdown from '../../../../components/ui/Dropdown';
+import Dropdown from '../../../components/ui/Dropdown';
 
 const EmployeeProfessionalContractsPage = () => {
   const [menuOpen, setMenuOpen] = useState(false);

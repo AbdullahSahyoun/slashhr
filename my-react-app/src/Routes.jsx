@@ -20,6 +20,8 @@ import PeopleOrgAnalytics from './pages/PeopleOrg/Analytics';
 import Notifications from './pages/Notifications';
 
 // Employee
+import Employee from './pages/Employee';
+
 import Attendance from './pages/Employee/Attendance';
 import Badges from './pages/Employee/Badges';
 import Documents from './pages/Employee/Documents';
@@ -27,7 +29,7 @@ import Feedback from './pages/Employee/Feedback';
 import Letters from './pages/Employee/Letters';
 import Personal from './pages/Employee/Personal';
 import Presence from './pages/Employee/Presence';
-import Contracts from './pages/Employee/Professional/Contracts';
+import Contracts from './pages/Employee/Professional';
 import LeaveHistory from './pages/Employee/LeaveHistory';
 
 // Inbox & Leave
@@ -71,6 +73,7 @@ export default function AppRoutes() {
       <Route path="/notifications" element={<Notifications />} />
 
       {/* Employee */}
+      <Route path="/employee" element={<Employee />} />
       <Route path="/employee/attendance" element={<Attendance />} />
       <Route path="/employee/badges" element={<Badges />} />
       <Route path="/employee/documents" element={<Documents />} />

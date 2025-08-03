@@ -60,124 +60,14 @@ const EmployeePersonalPage = () => {
   return (
     <div className="flex w-full min-h-screen bg-white">
       {/* Sidebar */}
-      <div className="w-full max-w-[280px] bg-sidebar-2 border-r-2 border-[#e4e4e4] lg:block hidden">
-        <div className="flex flex-col pt-6 pr-[22px] pl-[22px] pb-6">
-          {/* Logo */}
-          <div className="mt-1 mb-5">
-            <img 
-              src="/images/img_arrow_down.svg" 
-              alt="SlasHR Logo" 
-              className="w-[248px] h-[88px]"
-            />
-          </div>
+  
 
-          {/* Search */}
-          <div className="mt-5 mb-5">
-            <SearchView
-              placeholder="Search....."
-              value={searchValue}
-              onChange={(e) => setSearchValue(e.target.value)}
-              className="w-full p-3 border border-[#e4e4e4] rounded-lg bg-white text-xs font-inter text-[#626262]"
-              leftImage={{
-                src: '/images/img_search.svg',
-                width: 12,
-                height: 12
-              }}
-            />
-          </div>
-
-          {/* Menu Items */}
-          <div className="flex flex-col gap-5">
-            {sidebarMenuItems.map((item, index) => (
-              <div 
-                key={index}
-                className={`flex items-center p-2 rounded-lg cursor-pointer transition-colors duration-200 ${
-                  item.isActive ? 'bg-button-1 text-white' : 'hover:bg-gray-100'
-                }`}
-              >
-                <img 
-                  src={item.icon} 
-                  alt={item.label}
-                  className="w-5 h-5"
-                />
-                <span className="ml-[18px] text-base font-poppins font-semibold text-[#626262]">
-                  {item.label}
-                </span>
-                {item.badge && (
-                  <div className="ml-auto bg-sidebar-1 text-white text-xs font-inter font-bold px-2 py-1 rounded-md">
-                    {item.badge}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* Bottom Dropdown */}
-          <div className="mt-auto pt-[136px]">
-            <Dropdown
-              value={selectedEmployee}
-              onChange={setSelectedEmployee}
-              className="w-full p-7 border border-[#e4e4e4] rounded-[10px] bg-white text-sm font-poppins text-[#626262]"
-              rightImage={{
-                src: '/images/img_icons_16px_arrow_down.svg',
-                width: 16,
-                height: 14
-              }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Mobile Menu Button */}
-      <button className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-md shadow-md">
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-        </svg>
-      </button>
+   
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="w-full bg-white">
-          <div className="flex flex-col gap-[22px] pt-6 pr-6 pl-[72px] pb-0">
-            {/* Profile Header */}
-            <div className="flex items-center gap-[18px]">
-              <img 
-                src="/images/img_group_2570.svg" 
-                alt="Profile Icon"
-                className="w-11 h-11"
-              />
-              <h1 className="text-[25px] font-poppins font-medium text-black leading-[38px]">
-                Profile &gt; Manal Battache
-              </h1>
-            </div>
-
-            {/* Divider */}
-            <div className="w-full h-[1px] bg-header-1"></div>
-          </div>
-
-          {/* Tabs */}
-          <div className="flex flex-col px-[72px]">
-            <div className="flex items-start gap-[58px] overflow-x-auto">
-              {tabs.map((tab, index) => (
-                <div key={index} className="flex flex-col items-center min-w-max">
-                  <button
-                    onClick={() => setActiveTab(tab)}
-                    className={`text-base font-inter font-bold leading-5 py-4 whitespace-nowrap ${
-                      activeTab === tab ? 'text-global-2' : 'text-global-3'
-                    }`}
-                  >
-                    {tab}
-                  </button>
-                  {activeTab === tab && (
-                    <div className="w-full h-[3px] bg-global-2 rounded-[1px] mt-6"></div>
-                  )}
-                </div>
-              ))}
-            </div>
-            <div className="w-full h-[1px] bg-header-1 mt-0"></div>
-          </div>
-        </div>
+      
 
         {/* Content Area */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">

@@ -31,7 +31,7 @@ const Login = () => {
     setLoading(true);
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/auth/login`,
+        `${import.meta.env.VITE_API_URL}/auth/auth/login`,
         { email, password }
       );
       const { token, user } = response.data;
@@ -54,11 +54,11 @@ const Login = () => {
     setLoading(true);
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/auth/request-login-code`,
+        `${import.meta.env.VITE_API_URL}/auth/auth/request-login-code`,
         { email }
       );
       if (response.data?.message?.includes('OTP')) {
-        navigate(`/verify-code?email=${encodeURIComponent(email)}`);
+        navigate(`/verification?email=${encodeURIComponent(email)}`);
       } else {
         setError('Unexpected server response');
       }
@@ -105,7 +105,7 @@ const Login = () => {
                 placeholder="Enter your email"
                 value={email}
                 onChange={handleEmailChange}
-                className="w-full border border-edittext-1 rounded-[10px] px-4 py-3 text-[12px] font-medium text-edittext-1 placeholder:text-edittext-1"
+className="w-full border border-edittext-1 rounded-[10px] px-4 py-3 text-[12px] font-medium text-black placeholder:text-edittext-1"
               />
               {error === 'User not found' && (
                 <p className="text-[11px] text-global-4 mt-[6px]">
@@ -129,7 +129,7 @@ const Login = () => {
                   placeholder="Enter your Password"
                   value={password}
                   onChange={handlePasswordChange}
-                  className="w-full border border-edittext-1 rounded-[10px] px-4 pr-[50px] py-3 text-[12px] font-medium text-edittext-1 placeholder:text-edittext-1"
+className="w-full border border-edittext-1 rounded-[10px] px-4 py-3 text-[12px] font-medium text-black placeholder:text-edittext-1"
                 />
                 <button
                   type="button"
@@ -149,10 +149,22 @@ const Login = () => {
                 </p>
               )}
               <div className="flex justify-end mt-1">
-                <button className="text-[12px] text-global-2">
-                  Forgot password
-                </button>
-              </div>
+<button
+  className="text-[12px] text-global-2 hover:underline"
+  onClick={() => {
+    if (email) {
+      navigate(`/password-reset?email=${encodeURIComponent(email)}`);
+    } else {
+      alert('Please enter a valid email address.');
+    }
+  }}
+>
+  Forgot password?
+</button>
+
+
+</div>
+
             </div>
 
             {/* Switch */}
