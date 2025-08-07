@@ -7,62 +7,92 @@ import fastifyJwt from '@fastify/jwt';
 
 import authRoutes from './auth/routes/auth.js';
 import dbPlugin from './auth/plugins/db.js';
+import employeeRoutes from './employee/routes/employee.routes.js';
 
+// Load environment variables
 dotenv.config();
 
 const app = Fastify({ logger: true });
 
-// ✅ Enable CORS
+// ✅ Register CORS
 await app.register(fastifyCors, {
   origin: '*',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 });
 
-// ✅ JWT Support
+// ✅ Register DB plugin
+await app.register(dbPlugin);
+
+// ✅ Register JWT
 await app.register(fastifyJwt, {
-  secret: process.env.JWT_SECRET || 'supersecret123' // 🔐 Use strong secret in .env
+  secret: process.env.JWT_SECRET || 'supersecretkey'
 });
 
-// ✅ Add JWT decorator for protected routes
+// ✅ JWT authentication decorator
 app.decorate('authenticate', async function (request, reply) {
   try {
     await request.jwtVerify();
   } catch (err) {
-    return reply.code(401).send({ error: 'Unauthorized' });
+    reply.code(401).send({ error: 'Unauthorized' });
   }
 });
 
-// 📦 Swagger Docs
-await app.register(fastifySwagger, {
+// ✅ Swagger registration (with security scheme)
+ await app.register(fastifySwagger, {
   openapi: {
     info: {
       title: 'SlashHR API',
-      version: '1.0.0'
+      version: '1.0.0',
     },
-    servers: [{ url: `http://localhost:${process.env.PORT || 3000}` }]
+    servers: [
+      {
+        url: process.env.API_BASE_URL || `http://${process.env.HOST || 'localhost'}:${process.env.PORT || 3000}`
+      }
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT'
+        }
+      }
+    },
+    security: [
+      {
+        bearerAuth: [] // This applies it globally
+      }
+    ]
   }
 });
 
 await app.register(fastifySwaggerUi, {
   routePrefix: '/docs',
-  uiConfig: { docExpansion: 'list' },
-  staticCSP: true
+  exposeRoute: true,
+  uiConfig: {
+    docExpansion: 'list',
+    deepLinking: true
+  },
+  staticCSP: true,
+  transformStaticCSP: (header) => header
 });
 
-// 🔌 Plugins & Routes
-await app.register(dbPlugin);
+// ✅ Routes
 await app.register(authRoutes, { prefix: '/auth' });
+await app.register(employeeRoutes, { prefix: '/employee' });
 
-// 🏠 Test route
-app.get('/', async () => ({ message: 'SlashHR API is running' }));
+// ✅ Health check
+app.get('/', async () => {
+  return { message: 'SlashHR API is running' };
+});
 
-// 🚀 Start server (publicly accessible)
+// ✅ Start server
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
+
 try {
-  const address = await app.listen({
-    port: process.env.PORT || 3000,
-    host: '0.0.0.0'
-  });
+  const address = await app.listen({ port: PORT, host: HOST });
   console.log(`🚀 Server running at ${address}`);
 } catch (err) {
   app.log.error(err);

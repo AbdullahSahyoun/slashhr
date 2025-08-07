@@ -21,7 +21,6 @@ import Notifications from './pages/Notifications';
 
 // Employee
 import Employee from './pages/Employee';
-
 import Attendance from './pages/Employee/Attendance';
 import Badges from './pages/Employee/Badges';
 import Documents from './pages/Employee/Documents';
@@ -29,7 +28,6 @@ import Feedback from './pages/Employee/Feedback';
 import Letters from './pages/Employee/Letters';
 import Personal from './pages/Employee/Personal';
 import Presence from './pages/Employee/Presence';
-import Contracts from './pages/Employee/Professional';
 import LeaveHistory from './pages/Employee/LeaveHistory';
 
 // Inbox & Leave
@@ -81,8 +79,8 @@ export default function AppRoutes() {
       <Route path="/employee/letters" element={<Letters />} />
       <Route path="/employee/personal" element={<Personal />} />
       <Route path="/employee/presence" element={<Presence />} />
-      <Route path="/employee/professional/contracts" element={<Contracts />} />
       <Route path="/employee/leave-history" element={<LeaveHistory />} />
+      {/* 🔥 Removed: /employee/professional/contracts */}
 
       {/* Inbox & Leave */}
       <Route path="/inbox/time-off" element={<TimeOff />} />

@@ -37,7 +37,7 @@ const Login = () => {
       const { token, user } = response.data;
       localStorage.setItem('token', token);
       setError('');
-      navigate('/employee/professional/contracts');
+      navigate('/employee');
     } catch (error) {
       const errorMessage = error.response?.data?.error || 'An unexpected error occurred';
       setError(errorMessage);
