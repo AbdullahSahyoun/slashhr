@@ -10,6 +10,8 @@ import dbPlugin from './auth/plugins/db.js';
 
 dotenv.config();
 
+
+
 const app = Fastify({ logger: true });
 
 // ✅ Enable CORS

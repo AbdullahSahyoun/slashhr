@@ -9,41 +9,40 @@ import {
   Alert
 } from 'react-native';
 import axios from 'axios';
+import { useRouter } from 'expo-router';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const router = useRouter();
+  const handleLogin = async () => {
+    try {
+      const response = await axios.post(
+        `${process.env.EXPO_PUBLIC_API_URL}/auth/auth/login`,
+        { email, password }
+      );
 
- const handleLogin = async () => {
-  try {
-    const response = await axios.post(
-      `${process.env.EXPO_PUBLIC_API_URL}/auth/auth/login`,
-      { email, password }
-    );
+      const { token, user } = response.data;
+      console.log('Login success:', user);
 
-    const { token, user } = response.data;
-    console.log('Login success:', user);
+      setError('');
+      router.replace('/dashboard');
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.error || 'Unexpected error occurred';
 
-    setError('');
-    navigation.navigate('Home'); // عدّل الوجهة حسب الحاجة
-  } catch (error) {
-    const errorMessage =
-      error.response?.data?.error || 'Unexpected error occurred';
+      console.error('Login error:', errorMessage);
+      setError(errorMessage);
 
-    console.error('Login error:', errorMessage);
-    setError(errorMessage);
-
-    // 🔔 Alert message for user
-    Alert.alert(
-      'Login Failed',
-      errorMessage.includes('Network') ? 'Cannot connect to server. Check your internet or server status.' : errorMessage,
-      [{ text: 'OK' }]
-    );
-  }
-};
-
+      Alert.alert(
+        'Login Failed',
+        errorMessage.includes('Network') ? 'Cannot connect to server. Check your internet or server status.' : errorMessage,
+        [{ text: 'OK' }]
+      );
+    }
+  };
 
   return (
     <View style={styles.container}>

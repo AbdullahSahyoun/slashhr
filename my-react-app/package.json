@@ -47,8 +47,8 @@
     "@tailwindcss/typography": "^0.5.16",
     "axios": "^1.11.0",
     "prop-types": "^15.8.1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "react-router-dom": "^6.0.2",
     "recharts": "^2.15.2"
   },
@@ -62,5 +62,10 @@
     "prettier": "^3.5.3",
     "tailwindcss": "3.4.6",
     "vite": "5.0.0"
-  }
+  },
+  "description": "A modern React-based project utilizing the latest frontend technologies and tools for building responsive web applications.",
+  "main": "postcss.config.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }
