@@ -1,5 +1,3 @@
-// employee/models/EmployeeModel.js
-
 /**
  * Get all employees
  * @param {object} db - PostgreSQL client
@@ -13,16 +11,52 @@ export async function getAllEmployees(db) {
 }
 
 /**
- * Get single employee by ID
+ * Get single employee by EmployeeID (raw)
  * @param {object} db - PostgreSQL client
  * @param {number} id - Employee ID
- * @returns {Promise<object|null>} Employee object or null if not found
+ * @returns {Promise<object|null>} Employee object or null
  */
 export async function getEmployeeById(db, id) {
   const { rows } = await db.query(
-    'SELECT * FROM organization."tblEmployee" WHERE "EmployeeID" = $1', 
+    'SELECT * FROM organization."tblEmployee" WHERE "EmployeeID" = $1',
     [id]
   );
+  return rows[0] || null;
+}
+
+/**
+ * Get detailed employee info by UserID (with joins)
+ * @param {object} db - PostgreSQL client
+ * @param {number} userId - User ID
+ * @returns {Promise<object|null>} Detailed employee object or null
+ */
+export async function getEmployeeDetailsByUserId(db, userId) {
+  const query = `
+    SELECT
+      e."EmployeeID",
+      e."UserID",
+      u."Name" AS "FirstName",
+      e."Name" AS "PreferredName",
+      u."Email" AS "PersonalEmail",
+      e."Gender",
+      e."DateOfBirth",
+      e."Nationality",
+      e."MaritalStatus",
+      e."PhoneNumber",
+      e."CIN",
+      e."PersonalAddress",
+      e."CreatedAt" AS "EmployeeCreatedAt",
+      pos."Name" AS "Position",
+      org."Name" AS "Organization"
+    FROM organization."tblEmployee" e
+    JOIN "user"."tblUser" u ON e."UserID" = u."UserID"
+    LEFT JOIN organization."tblEmployeePosition" pos ON e."PositionID" = pos."PositionID"
+    LEFT JOIN organization."tblOrganisation" org ON e."OrgID" = org."OrgID"
+    WHERE e."UserID" = $1
+    LIMIT 1
+  `;
+
+  const { rows } = await db.query(query, [userId]);
   return rows[0] || null;
 }
 
@@ -99,4 +133,34 @@ export async function deleteEmployee(db, id) {
     [id]
   );
   return rowCount > 0;
+}
+
+/**
+ * Get professional employee information (Job Title, Dept, Manager, etc.)
+ * @param {object} db - PostgreSQL client
+ * @param {number} employeeId - Employee ID
+ * @returns {Promise<object|null>} Professional info object
+ */
+export async function getEmployeeProfessionalInfo(db, employeeId) {
+  const query = `
+    SELECT
+      e."EmployeeID",
+      pos."Name" AS "JobTitle",
+      dept."Name" AS "Department",
+      mgr."Name" AS "Manager",
+      office."Location" AS "OfficeLocation",
+      e."JoiningDate",
+      etype."Name" AS "EmploymentType",
+      wmode."Name" AS "WorkMode"
+    FROM organization."tblEmployee" e
+    LEFT JOIN organization."tblEmployeePosition" pos ON e."PositionID" = pos."PositionID"
+    LEFT JOIN organization."tblDepartment" dept ON e."DepartmentID" = dept."DepartmentID"
+    LEFT JOIN organization."tblEmployee" mgr ON e."ManagerID" = mgr."EmployeeID"
+    LEFT JOIN organization."tblOffice" office ON e."OfficeID" = office."OfficeID"
+    LEFT JOIN organization."tblEmploymentType" etype ON e."EmploymentTypeID" = etype."EmploymentTypeID"
+    LEFT JOIN organization."tblWorkMode" wmode ON e."WorkModeID" = wmode."WorkModeID"
+    WHERE e."EmployeeID" = $1
+  `;
+  const { rows } = await db.query(query, [employeeId]);
+  return rows[0] || null;
 }
