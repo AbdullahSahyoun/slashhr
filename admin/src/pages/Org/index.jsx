@@ -1,35 +1,30 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from '../../components/common/Sidebar';
 
-// tab sections
-import Overview from './Overview';
+// Tab sections (removed Overview, Settings, Documents)
 import People from './People';
 import Departments from './Departments';
 import Teams from './Teams';
 import OrgChart from './OrgChart';
 import Jobs from './Jobs';
-import Documents from './Documents';
 import Analytics from './Analytics';
-import Settings from './Settings';
 
 const OrgPage = () => {
   const [selectedOrg, setSelectedOrg] = useState(1);
   const [orgName, setOrgName] = useState('');
-  const [activeTab, setActiveTab] = useState('Overview');
+  const [activeTab, setActiveTab] = useState('People'); // default to People
 
   const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
   const token = localStorage.getItem('token');
 
+  // Removed 'Overview', 'Documents', 'Settings'
   const tabs = [
-    'Overview',
     'People',
     'Departments',
     'Teams',
     'OrgChart',
     'Jobs',
-    'Documents',
     'Analytics',
-    'Settings',
   ];
 
   useEffect(() => {
@@ -54,22 +49,19 @@ const OrgPage = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'Overview':   return <Overview orgId={selectedOrg} />;
-      case 'People':     return <People orgId={selectedOrg} />;
-      case 'Departments':return <Departments orgId={selectedOrg} />;
-      case 'Teams':      return <Teams orgId={selectedOrg} />;
-      case 'OrgChart':   return <OrgChart orgId={selectedOrg} />;
-      case 'Jobs':       return <Jobs orgId={selectedOrg} />;
-      case 'Documents':  return <Documents orgId={selectedOrg} />;
-      case 'Analytics':  return <Analytics orgId={selectedOrg} />;
-      case 'Settings':   return <Settings orgId={selectedOrg} />;
-      default:           return <Overview orgId={selectedOrg} />;
+      case 'People':      return <People orgId={selectedOrg} />;
+      case 'Departments': return <Departments orgId={selectedOrg} />;
+      case 'Teams':       return <Teams orgId={selectedOrg} />;
+      case 'OrgChart':    return <OrgChart orgId={selectedOrg} />;
+      case 'Jobs':        return <Jobs orgId={selectedOrg} />;
+      case 'Analytics':   return <Analytics orgId={selectedOrg} />;
+      default:            return <People orgId={selectedOrg} />; // fallback
     }
   };
 
   return (
     <div className="flex w-full min-h-screen bg-white">
-      {/* Sidebar (same component you use with Employee) */}
+      {/* Sidebar */}
       <Sidebar className="shrink-0" />
 
       {/* Main */}
@@ -86,7 +78,7 @@ const OrgPage = () => {
             <div className="w-full h-[1px] bg-header-1" />
           </div>
 
-          {/* Tabs (same look & feel as Employee) */}
+          {/* Tabs */}
           <div className="flex flex-col px-4 sm:px-6 lg:px-12">
             <div className="flex items-start gap-4 sm:gap-6 overflow-x-auto">
               {tabs.map((tab) => (

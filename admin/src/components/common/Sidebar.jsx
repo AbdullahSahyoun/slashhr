@@ -121,7 +121,7 @@ const Sidebar = ({
 
       {/* Desktop Sidebar */}
       <aside
-        className={`hidden lg:flex flex-col w-[270px] h-screen fixed top-0 left-0 bg-sidebar-2 border-r-2 border-global-6 z-40 ${className}`}
+        className={`hidden lg:flex flex-col  h-screen fixed top-0 left-0 bg-sidebar-2 border-r-2 border-global-6 z-40 ${className}`}
       >
         <div className="flex flex-col h-full px-4 py-6">
           {/* Logo */}
@@ -165,7 +165,7 @@ const Sidebar = ({
       </aside>
 
       {/* spacer for desktop layout */}
-      <div className="hidden lg:block w-[270px]" aria-hidden />
+      <div className="hidden lg:block " aria-hidden />
     </>
   );
 };
