@@ -39,7 +39,7 @@ const Login = () => {
       localStorage.setItem('userId', user.id); // ⬅️ أضفه هنا
 
       setError('');
-      navigate('/employee');
+      navigate('/employee?id=12');
     } catch (error) {
       const errorMessage = error.response?.data?.error || 'An unexpected error occurred';
       setError(errorMessage);

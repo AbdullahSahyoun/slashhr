@@ -1,43 +1,19 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useLocation, useParams } from 'react-router-dom';
 
 const EmployeeLeaveHistory = () => {
-  const [currentPage, setCurrentPage] = useState(1);
+  // Support both `/employee/:id/leave-history` and `?id=12`
+  const { id: paramId } = useParams();
+  const location = useLocation();
+  const queryId = new URLSearchParams(location.search).get('id');
+  const employeeId = Number(paramId || queryId);
 
-  const leaveData = [
-    {
-      leaveType: 'Vacation',
-      by: {
-        name: 'Manale Battache',
-        avatar: '/images/img_ellipse_26.png'
-      },
-      from: '27 Dec 2025',
-      to: '30 Dec 2025',
-      reason: "Friend's wedding celebration",
-      status: 'Pending'
-    },
-    {
-      leaveType: 'Vacation',
-      by: {
-        name: 'Manale Battache',
-        avatar: '/images/img_ellipse_26.png'
-      },
-      from: '27 Dec 2025',
-      to: '30 Dec 2025',
-      reason: "Friend's wedding celebration",
-      status: 'Approved'
-    },
-    {
-      leaveType: 'Vacation',
-      by: {
-        name: 'Manale Battache',
-        avatar: '/images/img_ellipse_26.png'
-      },
-      from: '27 Dec 2025',
-      to: '30 Dec 2025',
-      reason: "Friend's wedding celebration",
-      status: 'Rejected'
-    }
-  ];
+  const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+  const token = localStorage.getItem('token');
+
+  const [leaveData, setLeaveData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errMsg, setErrMsg] = useState('');
 
   const getStatusBadge = (status) => {
     const statusClasses = {
@@ -45,7 +21,6 @@ const EmployeeLeaveHistory = () => {
       'Approved': 'bg-green-100 text-green-800',
       'Rejected': 'bg-red-100 text-red-800'
     };
-
     return (
       <span className={`px-2 py-1 rounded text-xs font-medium ${statusClasses[status] || 'bg-gray-100 text-gray-800'}`}>
         {status}
@@ -55,35 +30,68 @@ const EmployeeLeaveHistory = () => {
 
   const renderTableRow = (item, index) => (
     <tr key={index} className="border-b border-gray-100">
-      <td className="px-5 py-6 text-sm font-medium text-gray-900">
-        {item.leaveType}
-      </td>
+      <td className="px-5 py-6 text-sm font-medium text-gray-900">{item.LeaveType}</td>
       <td className="px-4 py-4">
         <div className="flex items-center gap-4">
           <img 
-            src={item.by.avatar} 
+            src={item.AvatarUrl || '/images/img_ellipse_26.png'} 
             alt="avatar" 
             className="w-10 h-10 rounded-full"
           />
-          <span className="text-sm font-medium text-gray-900">
-            {item.by.name}
-          </span>
+          <span className="text-sm font-medium text-gray-900">{item.By}</span>
         </div>
       </td>
       <td className="px-4 py-6 text-sm text-gray-800">
-        {item.from}
+        {new Date(item.From).toLocaleDateString()}
       </td>
       <td className="px-4 py-6 text-sm text-gray-800">
-        {item.to}
+        {new Date(item.To).toLocaleDateString()}
       </td>
-      <td className="px-4 py-6 text-sm text-gray-800">
-        {item.reason}
-      </td>
-      <td className="px-4 py-6">
-        {getStatusBadge(item.status)}
-      </td>
+      <td className="px-4 py-6 text-sm text-gray-800">{item.Reason}</td>
+      <td className="px-4 py-6">{getStatusBadge(item.Status)}</td>
     </tr>
   );
+
+  useEffect(() => {
+    if (!employeeId || Number.isNaN(employeeId)) {
+      setErrMsg('Invalid employee ID in URL');
+      setLoading(false);
+      return;
+    }
+
+    const ctrl = new AbortController();
+    async function loadLeaveHistory() {
+      try {
+        setLoading(true);
+        setErrMsg('');
+        const res = await fetch(`${API}/employee/${employeeId}/leave-history`, {
+          headers: {
+            'Accept': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          signal: ctrl.signal,
+        });
+        if (!res.ok) {
+          const text = await res.text().catch(() => '');
+          throw new Error(`API ${res.status}: ${text || res.statusText}`);
+        }
+        const data = await res.json();
+        setLeaveData(data.items || []);
+      } catch (e) {
+        if (e.name !== 'AbortError') {
+          setErrMsg(e.message || 'Failed to load leave history');
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadLeaveHistory();
+    return () => ctrl.abort();
+  }, [employeeId, API, token]);
+
+  if (loading) return <div className="text-center py-10">Loading...</div>;
+  if (errMsg) return <div className="text-center py-10 text-red-500">{errMsg}</div>;
 
   return (
     <div className="min-h-screen bg-white px-4 sm:px-6 lg:px-12 py-8">
@@ -103,13 +111,19 @@ const EmployeeLeaveHistory = () => {
               </tr>
             </thead>
             <tbody>
-              {leaveData.map((item, index) => renderTableRow(item, index))}
+              {leaveData.length > 0 ? leaveData.map(renderTableRow) : (
+                <tr>
+                  <td colSpan="6" className="px-5 py-6 text-center text-gray-500">No leave records found.</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
 
         <div className="flex justify-between items-center mt-6">
-          <span className="text-sm text-gray-500">Showing data 3 of 3 entries</span>
+          <span className="text-sm text-gray-500">
+            Showing data {leaveData.length} of {leaveData.length} entries
+          </span>
           <div className="flex items-center gap-2">
             <button className="w-8 h-8 text-sm text-gray-600 bg-gray-100 rounded hover:bg-gray-200">&lt;</button>
             <button className="w-8 h-8 text-sm text-white bg-blue-600 rounded">1</button>

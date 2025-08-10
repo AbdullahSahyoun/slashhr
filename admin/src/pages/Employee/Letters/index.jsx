@@ -1,137 +1,138 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useLocation } from 'react-router-dom';
 
 const EmployeeLettersPage = () => {
-  const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = 1;
+  // Read ?id= from query string (consistent with Personal page)
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const employeeId = Number(params.get('id'));
 
-  const tableHeaders = [
-    'Letter type',
-    'By',
-    'Date',
-    'Purpose',
-    'Recipient',
-    'Information',
-    'Status'
-  ];
+  const API = import.meta.env.VITE_API_URL;
+  const token = localStorage.getItem('token');
 
-  const tableData = [
-    [
-      'Work Certificate',
-      <div key="user1" className="flex items-center gap-4">
-        <img
-          src="/images/img_ellipse_26.png"
-          alt="Manale Battache"
-          className="w-10 h-10 rounded-full"
-        />
-        <span className="text-sm font-medium text-gray-900">Manale Battache</span>
-      </div>,
-      '27 Dec 2025',
-      '-',
-      '-',
-      '-',
-      <span key="status1" className="inline-block px-2 py-1 bg-yellow-100 text-yellow-800 text-xs rounded">
-        Pending
-      </span>
-    ],
-    [
-      'Work Certificate',
-      <div key="user2" className="flex items-center gap-4">
-        <img
-          src="/images/img_ellipse_26.png"
-          alt="Manale Battache"
-          className="w-10 h-10 rounded-full"
-        />
-        <span className="text-sm font-medium text-gray-900">Manale Battache</span>
-      </div>,
-      '27 Dec 2025',
-      '-',
-      '-',
-      '-',
-      <span key="status2" className="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs rounded">
-        Approved
-      </span>
-    ],
-    [
-      'Work Certificate',
-      <div key="user3" className="flex items-center gap-4">
-        <img
-          src="/images/img_ellipse_26.png"
-          alt="Manale Battache"
-          className="w-10 h-10 rounded-full"
-        />
-        <span className="text-sm font-medium text-gray-900">Manale Battache</span>
-      </div>,
-      '27 Dec 2025',
-      '-',
-      '-',
-      '-',
-      <span key="status3" className="inline-block px-2 py-1 bg-red-100 text-red-800 text-xs rounded">
-        Rejected
-      </span>
-    ]
-  ];
+  const [raw, setRaw] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [errMsg, setErrMsg] = useState('');
 
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
+  useEffect(() => {
+    if (!employeeId || Number.isNaN(employeeId)) {
+      setErrMsg('Invalid employee ID in URL');
+      setLoading(false);
+      return;
+    }
+
+    const ctrl = new AbortController();
+
+    async function load() {
+      try {
+        setLoading(true);
+        setErrMsg('');
+        const res = await fetch(`${API}/employee/${employeeId}/letter-history`, {
+          headers: {
+            Accept: 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          signal: ctrl.signal,
+        });
+        if (!res.ok) {
+          const text = await res.text().catch(() => '');
+          throw new Error(`API ${res.status}: ${text || res.statusText}`);
+        }
+        const data = await res.json();
+        setRaw(Array.isArray(data.items) ? data.items : []);
+      } catch (e) {
+        if (e.name !== 'AbortError') {
+          console.error('Failed to fetch letter history:', e);
+          setErrMsg('Failed to load letter history.');
+        }
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
+    return () => ctrl.abort();
+  }, [employeeId, API, token, location.search]);
+
+  const letters = useMemo(() => {
+    return raw.map((r) => ({
+      Lettertype: r.Lettertype ?? '',
+      By: r.By ?? '',
+      Date: r.Date ? new Date(r.Date) : null,
+      Purpose: r.Purpose ?? '',
+      Recipient: r.Recipient ?? '',
+      Information: r.Information ?? '',
+      Status: r.Status ?? '',
+    }));
+  }, [raw]);
+
+  const getStatusBadge = (status) => {
+    const statusClasses = {
+      Pending: 'bg-yellow-100 text-yellow-800',
+      Approved: 'bg-green-100 text-green-800',
+      Rejected: 'bg-red-100 text-red-800',
+    };
+    return (
+      <span className={`px-2 py-1 rounded text-xs font-medium ${statusClasses[status] || 'bg-gray-100 text-gray-800'}`}>
+        {status || '—'}
+      </span>
+    );
   };
+
+  if (loading) {
+    return <div className="text-center py-10 text-gray-500">Loading...</div>;
+  }
+
+  if (errMsg) {
+    return (
+      <div className="text-center py-10 text-red-500">
+        {errMsg}
+        <br />
+        <span className="text-sm text-gray-600">Employee ID: {employeeId || 'Unknown'}</span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white px-4 sm:px-6 lg:px-12 py-8">
       <div className="max-w-7xl mx-auto bg-white border border-gray-200 rounded-lg shadow p-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Letter History</h2>
 
-        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-gray-200">
-                {tableHeaders.map((header, index) => (
-                  <th
-                    key={index}
-                    className={`text-sm font-medium text-gray-500 pb-3 ${index === 0 ? 'pl-4' : 'px-2'}`}
-                  >
-                    {header}
+                {['Letter type','By','Date','Purpose','Recipient','Information','Status'].map((h, i) => (
+                  <th key={i} className={`text-sm font-medium text-gray-500 pb-3 ${i === 0 ? 'pl-4' : 'px-2'}`}>
+                    {h}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {tableData.map((row, rowIndex) => (
-                <tr key={rowIndex} className="border-b border-gray-100">
-                  {row.map((cell, cellIndex) => (
-                    <td
-                      key={cellIndex}
-                      className={`py-5 ${cellIndex === 0 ? 'pl-4' : 'px-2'} text-sm text-gray-900`}
-                    >
-                      {cell}
-                    </td>
-                  ))}
+              {letters.length ? (
+                letters.map((l, idx) => (
+                  <tr key={idx} className="border-b border-gray-100">
+                    <td className="pl-4 py-5 text-sm text-gray-900">{l.Lettertype || '—'}</td>
+                    <td className="px-2 py-5 text-sm text-gray-900">{l.By || '—'}</td>
+                    <td className="px-2 py-5 text-sm text-gray-900">{l.Date ? l.Date.toLocaleDateString() : '—'}</td>
+                    <td className="px-2 py-5 text-sm text-gray-900">{l.Purpose || '—'}</td>
+                    <td className="px-2 py-5 text-sm text-gray-900">{l.Recipient || '—'}</td>
+                    <td className="px-2 py-5 text-sm text-gray-900">{l.Information || '—'}</td>
+                    <td className="px-2 py-5">{getStatusBadge(l.Status)}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-gray-500">No letters found.</td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
 
-        {/* Pagination */}
         <div className="flex justify-between items-center mt-6">
-          <span className="text-sm text-gray-500">Showing data 3 of 3 entries</span>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="w-8 h-8 rounded bg-gray-100 hover:bg-gray-200 text-sm text-gray-600 disabled:opacity-50"
-            >
-              &lt;
-            </button>
-            <button className="w-8 h-8 rounded bg-blue-600 text-white text-sm">1</button>
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="w-8 h-8 rounded bg-gray-100 hover:bg-gray-200 text-sm text-gray-600 disabled:opacity-50"
-            >
-              &gt;
-            </button>
-          </div>
+          <span className="text-sm text-gray-500">Showing {letters.length} of {letters.length} entries</span>
         </div>
       </div>
     </div>

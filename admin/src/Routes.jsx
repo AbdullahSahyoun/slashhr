@@ -13,9 +13,9 @@ import Dashboard from './pages/Dashboard';
 import DashboardSettings from './pages/Dashboard/Settings';
 
 // People & Org
-import PeopleOrg from './pages/PeopleOrg';
-import PeopleOrgAnalytics from './pages/PeopleOrg/Analytics';
+import OrgPage from './pages/Org';
 
+ 
 // Notifications
 import Notifications from './pages/Notifications';
 
@@ -64,8 +64,8 @@ export default function AppRoutes() {
       <Route path="/dashboard/settings" element={<DashboardSettings />} />
 
       {/* People & Org */}
-      <Route path="/people-org" element={<PeopleOrg />} />
-      <Route path="/people-org/analytics" element={<PeopleOrgAnalytics />} />
+<Route path="/organization" element={<OrgPage />} />
+
 
       {/* Notifications */}
       <Route path="/notifications" element={<Notifications />} />

@@ -1,24 +1,38 @@
-import { getEmployeeProfessionalInfo } from '../models/model.js';
+// _employee/controllers/employeeProfessionalController.js
+import { getEmployeeProfessional } from '../models/employeeProfessional.model.js';
 
-export async function getEmployeeProfessionalById(req, reply) {
+const isProd = process.env.NODE_ENV === 'production';
+
+function getDb(req) {
+  const db = req?.server?.db || req?.server?.pg;
+  if (!db || typeof db.query !== 'function') {
+    throw new Error('DB plugin missing: expected req.server.db or req.server.pg with a query() method.');
+  }
+  return db;
+}
+
+/**
+ * GET /employee/:id/professional
+ */
+export async function getProfessional(req, reply) {
   try {
-    const employeeId = parseInt(req.params.employeeId, 10);
-
-    if (isNaN(employeeId)) {
-      return reply.code(400).send({ error: 'Invalid employee ID' });
+    const employeeId = Number(req.params?.id);
+    if (!Number.isInteger(employeeId) || employeeId <= 0) {
+      return reply.code(400).send({ message: 'Invalid EmployeeID' });
     }
 
-    const db = req.server.db; // ⬅️ تأكد أن db معرف هنا
-    const result = await getEmployeeProfessionalInfo(db, employeeId);
-
-    if (!result) {
-      return reply.code(404).send({ error: `Employee with ID ${employeeId} not found.` });
+    const db = getDb(req);
+    const row = await getEmployeeProfessional(db, employeeId);
+    if (!row) {
+      return reply.code(404).send({ message: `Employee with ID ${employeeId} not found.` });
     }
 
-    return reply.send(result);
-
+    return reply.send(row);
   } catch (err) {
-    console.error('🔥 Server Error in getEmployeeProfessionalById:', err);
-    return reply.code(500).send({ error: 'Internal server error' });
+    req.log?.error?.(err);
+    return reply.code(500).send({
+      message: 'Internal server error',
+      ...(isProd ? {} : { error: String(err?.message || err) })
+    });
   }
 }
