@@ -26,11 +26,23 @@
     "fastify-plugin": "^5.0.1",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.16.3",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-scripts": "^5.0.1",
     "sequelize": "^6.37.7",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
     "vite": "^7.0.6"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AbdullahSahyoun/slashhr.git"
+  },
+  "keywords": [],
+  "bugs": {
+    "url": "https://github.com/AbdullahSahyoun/slashhr/issues"
+  },
+  "homepage": "https://github.com/AbdullahSahyoun/slashhr#readme"
 }
