@@ -1,0 +1,33 @@
+// _employee/controllers/getEmployeesByCompanyController.js
+import { getEmployeesByCompany } from '../models/getEmployeesByCompany.model.js';
+
+const isProd = process.env.NODE_ENV === 'production';
+
+function getDb(req) {
+  const db = req?.server?.db || req?.server?.pg;
+  if (!db || typeof db.query !== 'function') {
+    throw new Error('DB plugin missing: expected req.server.db or req.server.pg with a query() method.');
+  }
+  return db;
+}
+
+/** GET /employee/company/:orgId/employees */
+export async function listEmployeesByCompany(req, reply) {
+  try {
+    const orgId = Number(req.params?.orgId);
+    if (!Number.isInteger(orgId) || orgId <= 0) {
+      return reply.code(400).send({ message: 'Invalid OrgID' });
+    }
+
+    const db = getDb(req);
+    const rows = await getEmployeesByCompany(db, orgId);
+
+    return reply.send({ items: rows, count: rows.length, orgId });
+  } catch (err) {
+    req.log?.error?.(err);
+    return reply.code(500).send({
+      message: 'Internal server error',
+      ...(isProd ? {} : { error: String(err?.message || err) })
+    });
+  }
+}

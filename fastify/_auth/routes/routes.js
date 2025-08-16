@@ -1,7 +1,7 @@
  import {
   login,
   requestOtpLogin,
-  verifyOtpCodeHandler // ✅ تأكد من أن هذا الاسم هو نفسه في controller
+  verifyOtpCodeHandler  
 } from '../controllers/authController.js';
 
 import { resetPassword } from '../controllers/resetPasswordController.js';
