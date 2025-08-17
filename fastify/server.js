@@ -13,6 +13,7 @@ import employeeRoutes from './_employee/routes/routes.js';
 import employeeCreateRoutes from './_employee/routes/create.js';
 import catalogRoutes from './_catalog/routes/routes.js';
 import postRoutes from './_post/routes/routes.js';
+import createEmpTempRoutes from './_createEmpTemp/routes.js';
 
 dotenv.config();
 
@@ -118,6 +119,7 @@ await app.register(employeeRoutes, { prefix: '/employee' });
 await app.register(employeeCreateRoutes, { prefix: '/employee' }); // <-- add employee POST
 await app.register(catalogRoutes, { prefix: '/catalog' });
 await app.register(postRoutes, { prefix: '/timeline' });
+await app.register(createEmpTempRoutes, { prefix: '/api/create-temp' });
 
 /** ===== Health ===== */
 app.get('/', async () => ({ message: 'SlashHR API is running' }));
@@ -130,3 +132,4 @@ try {
   app.log.error(err);
   process.exit(1);
 }
+

@@ -10,10 +10,15 @@ import ManagersController from '../controllers/ManagersController.js';
 import PrimaryRolesController from '../controllers/PrimaryRolesController.js';
 import SecondaryRolesController from '../controllers/SecondaryRolesController.js';
 import LegalEntitiesController from '../controllers/LegalEntitiesController.js';
+ 
 
-// (If you’ll keep FormLookupsController too, import it here as well)
+// Optional: import FormLookupsController if you still use it
+// import FormLookupsController from '../controllers/FormLookupsController.js';
 
-export default async function catalogRoutes(fastify) {
+export default async function catalogRoutes(fastify, opts) {
+  // If you want auth on all catalog routes, uncomment:
+  // fastify.addHook('preHandler', fastify.authenticate);
+
   await fastify.register(SelectEstablishmentController);
   await fastify.register(ContractTemplateController);
   await fastify.register(ReasonForContractController);
@@ -25,6 +30,9 @@ export default async function catalogRoutes(fastify) {
   await fastify.register(PrimaryRolesController);
   await fastify.register(SecondaryRolesController);
   await fastify.register(LegalEntitiesController);
-
+ 
   // await fastify.register(FormLookupsController); // optional
+
+  // Optional lightweight health check for this module
+  fastify.get('/_catalog/health', { schema: { hide: true } }, async () => ({ ok: true }));
 }

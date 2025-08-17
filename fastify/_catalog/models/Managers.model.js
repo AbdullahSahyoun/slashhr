@@ -1,16 +1,16 @@
-export async function getAll(fastify) {
-  const client = await fastify.pg.connect();
-  try {
-    // Adjust condition to your schema (is_manager flag, role check, etc.)
-    const q = `
-      SELECT id, full_name AS label
-      FROM employees
-      WHERE is_manager = true
-      ORDER BY full_name
-    `;
-    const { rows } = await client.query(q);
-    return rows;
-  } finally {
-    client.release();
-  }
+// _catalog/models/DepartmentManager.model.js
+export async function getByDepartmentId(fastify, departmentId) {
+  const sql = `
+    SELECT
+      e."EmployeeID" AS id,
+      e."Name"       AS label     -- 👈 alias to 'label' to match schema
+    FROM organization.department_managers dm
+    JOIN organization."tblEmployee" e
+      ON e."EmployeeID" = dm.employee_id
+    WHERE dm.department_id = $1
+      AND dm.is_active = TRUE
+    ORDER BY e."Name";
+  `;
+  const { rows } = await fastify.pg.query(sql, [Number(departmentId)]);
+  return rows; // [{ id, label }]
 }

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Sidebar from '../../components/common/Sidebar';
 
 // Tab sections (removed Overview, Settings, Documents)
-import People from './People';
+import People from './people';
 import Departments from './Departments';
 import Teams from './Teams';
 import OrgChart from './OrgChart';

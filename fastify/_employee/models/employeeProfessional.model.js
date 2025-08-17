@@ -4,7 +4,7 @@ const BASE_SELECT = `
   SELECT
     e."EmployeeID",
     pos."Name"         AS "JobTitle",
-    dept."Name"        AS "Department",
+    dept."DepartmentName"        AS "Department",
     m."Name"           AS "Manager",
     office."Location"  AS "OfficeLocation", -- ✅ fixed column name
     e."JoiningDate",
