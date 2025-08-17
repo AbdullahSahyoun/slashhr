@@ -114,6 +114,7 @@ function CreateJobModal({ open, onClose, onCreated }) {
     setSaving(true);
     setErr('');
     try {
+      // Adjust URL if your backend path differs
       const payload = {
         name: name.trim(),
         legalEntityIds: selectedLegalEntities,
@@ -138,16 +139,27 @@ function CreateJobModal({ open, onClose, onCreated }) {
       <div className="absolute inset-0 bg-black/40" onClick={() => !saving && onClose?.()} />
       <div className="absolute inset-0 flex items-start justify-center p-4 sm:p-6">
         <div className="w-full max-w-sm rounded-2xl bg-white shadow-xl overflow-hidden">
-          <div className="px-4 pt-4 pb-2 border-b border-gray-100 flex items-center justify-between">
-            <div>
-              <h3 className="text-[17px] font-semibold text-[#2b6171]">New Job</h3>
-              <p className="text-xs text-gray-500 mt-1">Enter a name and assign legal entities.</p>
+          <div className="px-4 pt-4 pb-2 border-b border-gray-100">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-[17px] font-semibold text-[#2b6171]">New Job</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Enter a name for the new role and select the applicable legal entities.
+                </p>
+              </div>
+              <button
+                className="p-1 rounded-full text-gray-500 hover:bg-gray-100"
+                onClick={() => !saving && onClose?.()}
+                aria-label="Close"
+              >
+                ✕
+              </button>
             </div>
-            <button className="p-1 rounded-full text-gray-500 hover:bg-gray-100" onClick={() => !saving && onClose?.()}>✕</button>
           </div>
 
           <div className="px-4 py-3 space-y-3">
             {err && <div className="text-sm text-red-600">{err}</div>}
+
             <label className="block">
               <span className="block text-sm text-gray-700 mb-1">Name</span>
               <input
@@ -160,40 +172,52 @@ function CreateJobModal({ open, onClose, onCreated }) {
 
             <div>
               <span className="block text-sm text-gray-700 mb-1">Legal entities</span>
-              <button
-                type="button"
-                onClick={toggleAll}
-                className="mb-2 inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm bg-white hover:bg-gray-50"
-              >
-                <span className="inline-flex items-center justify-center w-5 h-5 text-[11px] rounded bg-[#2b6171] text-white">
-                  {allSelected ? legalEntities.length : selectedLegalEntities.length}
-                </span>
-                {allSelected ? 'All' : 'Selected'}
-              </button>
-              <div className="max-h-40 overflow-auto rounded-lg border">
-                {legalEntities.map((le) => {
-                  const checked = selectedLegalEntities.includes(le.id);
-                  return (
-                    <label key={le.id} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50">
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={(e) =>
-                          setSelectedLegalEntities((prev) =>
-                            e.target.checked ? [...prev, le.id] : prev.filter((id) => id !== le.id)
-                          )
-                        }
-                      />
-                      {le.label}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleAll}
+                  className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm bg-white hover:bg-gray-50"
+                >
+                  <span className="inline-flex items-center justify-center w-5 h-5 text-[11px] rounded bg-[#2b6171] text-white">
+                    {allSelected ? legalEntities.length : selectedLegalEntities.length}
+                  </span>
+                  {allSelected ? 'All' : 'Selected'}
+                </button>
+
+                <details className="relative">
+                  <summary className="list-none cursor-pointer select-none inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm bg-white hover:bg-gray-50">
+                    Choose…
+                  </summary>
+                  <div className="absolute z-10 mt-2 w-64 max-h-64 overflow-auto rounded-lg border bg-white shadow">
+                    <label className="flex items-center gap-2 px-3 py-2 border-b">
+                      <input type="checkbox" checked={allSelected} onChange={toggleAll} />
+                      <span className="text-sm">All</span>
                     </label>
-                  );
-                })}
+                    {legalEntities.map((le) => {
+                      const checked = selectedLegalEntities.includes(le.id);
+                      return (
+                        <label key={le.id} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50">
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) =>
+                              setSelectedLegalEntities((prev) =>
+                                e.target.checked ? [...prev, le.id] : prev.filter((id) => id !== le.id)
+                              )
+                            }
+                          />
+                          <span className="text-sm">{le.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </details>
               </div>
             </div>
 
             <div>
               <span className="block text-sm text-gray-700 mb-1">Levels</span>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 <input
                   className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2b6171]"
                   placeholder="e.g. Junior"
@@ -201,17 +225,30 @@ function CreateJobModal({ open, onClose, onCreated }) {
                   onChange={(e) => setLevelInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addLevel())}
                 />
-                <button type="button" onClick={addLevel} className="rounded-lg bg-gray-100 hover:bg-gray-200 px-3 py-2 text-sm">
-                  + Add
+                <button
+                  type="button"
+                  onClick={addLevel}
+                  className="rounded-lg bg-gray-100 hover:bg-gray-200 px-3 py-2 text-sm"
+                >
+                  + Add level
                 </button>
               </div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {levels.map((lvl) => (
-                  <span key={lvl.id} className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-xs">
-                    {lvl.label}
-                    <button className="text-gray-500 hover:text-gray-700" onClick={() => removeLevel(lvl.id)}>✕</button>
-                  </span>
-                ))}
+
+              {levels.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {levels.map((lvl) => (
+                    <span key={lvl.id} className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-xs">
+                      {lvl.label}
+                      <button className="text-gray-500 hover:text-gray-700" onClick={() => removeLevel(lvl.id)} title="Remove">
+                        ✕
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-3 rounded-lg bg-[#e6f0f3] text-[#245c65] px-3 py-2 text-xs">
+                Assign performance levels to roles, such as junior, mid, and senior.
               </div>
             </div>
           </div>
@@ -220,7 +257,7 @@ function CreateJobModal({ open, onClose, onCreated }) {
             <button
               onClick={handleSave}
               disabled={!canSave}
-              className="w-full rounded-lg bg-[#1f4d57] text-white py-2 font-medium hover:bg-[#1b434c] disabled:opacity-60"
+              className="w-full rounded-lg bg-[#1f4d57] text-white py-2 font-medium border border-white/15 hover:bg-[#1b434c] disabled:opacity-60"
             >
               {saving ? 'Saving…' : 'Save'}
             </button>
@@ -236,10 +273,18 @@ const JobsPage = () => {
   const [search, setSearch] = useState('');
   const [openCreate, setOpenCreate] = useState(false);
 
+  // Alerts (top list)
+  const alerts = [
+    '1 employees without a role or level',
+    '3 employees with the wrong job data',
+    '1 employee without a reporting line hierarchy',
+  ];
+
+  // Demo rows (Role groups) – you can replace with API later
   const seedRows = [
-    { id: 1, role: 'Devops', members: 4, avgAge: 20, avgTenure: '2 years', femalePct: 28, malePct: 72 },
-    { id: 2, role: 'Managers', members: 5, avgAge: 28, avgTenure: '10 years', femalePct: 25, malePct: 75 },
-    { id: 3, role: 'People', members: 4, avgAge: 'N/A', avgTenure: 'a year', femalePct: 62, malePct: 38 },
+    { id: 1, role: 'Devops',   members: 4,  avgAge: 20,  avgTenure: '2 years',  femalePct: 28, malePct: 72 },
+    { id: 2, role: 'Managers', members: 5,  avgAge: 28,  avgTenure: '10 years', femalePct: 25, malePct: 75 },
+    { id: 3, role: 'People',   members: 4,  avgAge: 'N/A', avgTenure: 'a year', femalePct: 62, malePct: 38 },
   ];
   const [rows, setRows] = useState(seedRows);
 
@@ -266,16 +311,40 @@ const JobsPage = () => {
   return (
     <div className="w-full bg-white">
       <div className="mx-auto mt-6 w-full max-w-[1180px] space-y-5">
+        {/* Alerts card */}
+        <div className="rounded-xl border border-gray-200 bg-white p-3 sm:p-4">
+          <ul className="divide-y divide-gray-100">
+            {alerts.map((text, i) => (
+              <li key={i} className="flex items-center justify-between py-3 px-2">
+                <span className="text-[15px] text-[#626262]">{text}</span>
+                <img src="/images/img_group_1325.svg" alt="settings" className="h-4 w-4 opacity-70" />
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Grid card: search + actions + table */}
         <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
           {/* Top controls */}
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <SearchInput value={search} onChange={(e) => setSearch(e.target.value)} onSearch={setSearch} className="w-full sm:flex-1" />
+            <SearchInput
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onSearch={setSearch}
+              className="w-full sm:flex-1"
+            />
             <div className="flex gap-2">
               <button
                 onClick={() => setOpenCreate(true)}
                 className="rounded-xl bg-[#2b6171] px-4 py-2 text-sm font-medium text-white hover:bg-[#214b59]"
               >
                 + New job
+              </button>
+              <button
+                onClick={() => {/* import flow */}}
+                className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-[#2b6171] hover:bg-gray-50"
+              >
+                Import jobs in bulk
               </button>
             </div>
           </div>
@@ -311,17 +380,36 @@ const JobsPage = () => {
                         <Bar value={r.malePct} />
                       </div>
                     </td>
-                    <td className="py-4 px-3 text-right"><RowArrow /></td>
+                    <td className="py-4 px-3 text-right">
+                      <RowArrow />
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+
+          {/* Footer / pagination */}
+          <div className="mt-4 flex items-center justify-between">
+            <button className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
+              ← Previous
+            </button>
+            <span className="text-xs text-gray-500">
+              Showing data {filtered.length} of {rows.length} entries
+            </span>
+            <button className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
+              Next →
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Modal */}
-      <CreateJobModal open={openCreate} onClose={() => setOpenCreate(false)} onCreated={handleCreated} />
+      <CreateJobModal
+        open={openCreate}
+        onClose={() => setOpenCreate(false)}
+        onCreated={handleCreated}
+      />
     </div>
   );
 };

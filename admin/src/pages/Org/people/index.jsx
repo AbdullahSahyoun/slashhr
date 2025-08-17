@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import SearchView from '../../../components/ui/SearchView';
 import CreateEmployeeModal from '../../../components/modals/employee/Create';
@@ -29,14 +29,10 @@ const PeopleOrgPage = () => {
 
   const [searchValue, setSearchValue] = useState('');
   const [filterBy, setFilterBy] = useState('Filter by'); // 'Filter by' | 'Active' | 'Inactive'
-
-  // Group (Job)
-  const [groupBy, setGroupBy] = useState('');   // selected Job name
-  const [groups, setGroups] = useState([]);     // loaded from /job-groups
-
-  // Department
-  const [departmentBy, setDepartmentBy] = useState(''); // selected Department
-  const [departments, setDepartments] = useState([]);   // loaded from /departments
+  const [groupBy, setGroupBy] = useState('');            // selected Job name
+  const [groups, setGroups] = useState([]);              // from /job-groups
+  const [departmentBy, setDepartmentBy] = useState('');  // selected Department
+  const [departments, setDepartments] = useState([]);    // from /departments
 
   const [selectedRows, setSelectedRows] = useState([]);
   const [openCreateModal, setOpenCreateModal] = useState(false);
@@ -45,65 +41,79 @@ const PeopleOrgPage = () => {
   const [loading, setLoading] = useState(true);
   const [errMsg, setErrMsg] = useState('');
 
-  // Load employees
+  // abort controller ref
+  const ctrlRef = useRef(null);
+
+  // map API => view rows
+  const mapEmployees = (list) =>
+    list.map((r, i) => ({
+      id: r.EmployeeID ?? i + 1,
+      firstName: r.FirstName ?? '',
+      lastName: r.LastName ?? '',
+      job: r.Job ?? '',
+      department: r.Department || r.DepartmentName || '',
+      hired: fmtSince(r.Hired),
+      status:
+        typeof r.Status === 'boolean'
+          ? r.Status ? 'Active' : 'Inactive'
+          : (r.Status || 'Active'),
+      avatar: r.Photo || '/images/img_avatar_image_39.png',
+    }));
+
+  // fetch employees
+  async function loadEmployees(signal) {
+    try {
+      setLoading(true);
+      setErrMsg('');
+      const url = `${API}/employee/company/${orgId}/employees`;
+      const res = await fetch(url, {
+        headers: {
+          Accept: 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: 'include',
+        signal,
+      });
+      if (!res.ok) throw new Error(`API ${res.status}`);
+      const payload = await res.json();
+      const list = Array.isArray(payload) ? payload : payload.items || [];
+      setRows(mapEmployees(list));
+    } catch (e) {
+      if (e.name !== 'AbortError') {
+        console.error('Failed to fetch employees:', e);
+        setErrMsg('Failed to load employees.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // reload helper
+  const reload = () => {
+    if (ctrlRef.current) ctrlRef.current.abort();
+    const ctrl = new AbortController();
+    ctrlRef.current = ctrl;
+    loadEmployees(ctrl.signal);
+  };
+
+  // initial load & on deps change
   useEffect(() => {
     if (!orgId || Number.isNaN(orgId)) {
       setErrMsg('Invalid orgId in URL');
       setLoading(false);
       return;
     }
-    const ctrl = new AbortController();
-    async function load() {
-      try {
-        setLoading(true);
-        setErrMsg('');
-        const url = `${API}/employee/company/${orgId}/employees`;
-        const res = await fetch(url, {
-          headers: {
-            Accept: 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          credentials: 'include',
-          signal: ctrl.signal,
-        });
-        if (!res.ok) {
-          const text = await res.text().catch(() => '');
-          throw new Error(`API ${res.status}: ${text || res.statusText}`);
-        }
-        const payload = await res.json();
-        const list = Array.isArray(payload) ? payload : payload.items || [];
-
-        const mapped = list.map((r, i) => ({
-          id: r.EmployeeID ?? i + 1,
-          firstName: r.FirstName ?? '',
-          lastName: r.LastName ?? '',
-          job: r.Job ?? '',
-          department: r.Department || r.DepartmentName || '',
-          hired: fmtSince(r.Hired),
-          // normalize boolean -> 'Active'/'Inactive'
-  status: typeof r.Status === 'boolean' ? (r.Status ? 'Active' : 'Inactive') : (r.Status || 'Active'),
-          avatar: r.Photo || '/images/img_avatar_image_39.png',
-        }));
-
-        setRows(mapped);
-      } catch (e) {
-        if (e.name !== 'AbortError') {
-          console.error('Failed to fetch employees:', e);
-          setErrMsg('Failed to load employees.');
-        }
-      } finally {
-        setLoading(false);
-      }
-    }
-    load();
-    return () => ctrl.abort();
+    reload();
+    return () => {
+      if (ctrlRef.current) ctrlRef.current.abort();
+    };
   }, [API, orgId, token]);
 
-  // Load job groups (distinct Job)
+  // Load job groups
   useEffect(() => {
     if (!orgId || Number.isNaN(orgId)) return;
     const ctrl = new AbortController();
-    async function loadGroups() {
+    (async () => {
       try {
         const url = `${API}/employee/company/${orgId}/job-groups`;
         const res = await fetch(url, {
@@ -120,8 +130,7 @@ const PeopleOrgPage = () => {
       } catch (e) {
         if (e.name !== 'AbortError') console.warn('Failed to load job groups:', e);
       }
-    }
-    loadGroups();
+    })();
     return () => ctrl.abort();
   }, [API, orgId, token]);
 
@@ -129,7 +138,7 @@ const PeopleOrgPage = () => {
   useEffect(() => {
     if (!orgId || Number.isNaN(orgId)) return;
     const ctrl = new AbortController();
-    async function loadDepartments() {
+    (async () => {
       try {
         const url = `${API}/employee/company/${orgId}/departments`;
         const res = await fetch(url, {
@@ -141,13 +150,12 @@ const PeopleOrgPage = () => {
           signal: ctrl.signal,
         });
         if (!res.ok) return;
-        const data = await res.json(); // array of strings
+        const data = await res.json();
         setDepartments(Array.isArray(data) ? data : []);
       } catch (e) {
         if (e.name !== 'AbortError') console.warn('Failed to load departments:', e);
       }
-    }
-    loadDepartments();
+    })();
     return () => ctrl.abort();
   }, [API, orgId, token]);
 
@@ -183,37 +191,45 @@ const PeopleOrgPage = () => {
     );
   };
 
-  // Apply search + filter + group + department
+  // filtered list
   const employees = useMemo(() => {
     let list = rows;
-
-    // Active / Inactive filter
     if (filterBy === 'Active' || filterBy === 'Inactive') {
       list = list.filter((e) => e.status === filterBy);
     }
-
-    // Group (Job) filter
     if (groupBy) {
-      list = list.filter((e) => (e.job || '').toLowerCase() === groupBy.toLowerCase());
-    }
-
-    // Department filter
-    if (departmentBy) {
-      list = list.filter((e) => (e.department || '').toLowerCase() === departmentBy.toLowerCase());
-    }
-
-    // Search filter
-    if (searchValue.trim()) {
-      const q = searchValue.trim().toLowerCase();
-      list = list.filter((e) =>
-        (e.firstName + ' ' + e.lastName).toLowerCase().includes(q) ||
-        (e.job || '').toLowerCase().includes(q) ||
-        (e.department || '').toLowerCase().includes(q)
+      list = list.filter(
+        (e) => (e.job || '').toLowerCase() === groupBy.toLowerCase()
       );
     }
-
+    if (departmentBy) {
+      list = list.filter(
+        (e) => (e.department || '').toLowerCase() === departmentBy.toLowerCase()
+      );
+    }
+    if (searchValue.trim()) {
+      const q = searchValue.trim().toLowerCase();
+      list = list.filter(
+        (e) =>
+          (e.firstName + ' ' + e.lastName).toLowerCase().includes(q) ||
+          (e.job || '').toLowerCase().includes(q) ||
+          (e.department || '').toLowerCase().includes(q)
+      );
+    }
     return list;
   }, [rows, filterBy, groupBy, departmentBy, searchValue]);
+
+  // called after modal creates employee
+  const handleCreated = (created) => {
+    if (created) {
+      // Optimistic prepend
+      setRows((prev) => [mapEmployees([created])[0], ...prev]);
+    } else {
+      // Or do a refetch if your API doesn't return the full object
+      reload();
+    }
+    setOpenCreateModal(false);
+  };
 
   return (
     <div className="w-full min-h-screen bg-white flex flex-col">
@@ -251,7 +267,7 @@ const PeopleOrgPage = () => {
                   <select
                     value={filterBy}
                     onChange={(e) => setFilterBy(e.target.value)}
-                    className="appearance-none bg-white border border-[#e6e6e6] rounded-[10px] px-[18px] py-[8px] pr-[50px] text-[15px] font-inter text-[#626262] focus:outline-none focus:ring-2 focus:ring-[#2b6171]"
+                    className="appearance-none bg-white border border-[#e6e6e6] rounded-[10px] px-[18px] py-[8px] pr-[50px] text-[15px] font-inter text-[#626262]"
                   >
                     <option>Filter by</option>
                     <option>Active</option>
@@ -269,7 +285,7 @@ const PeopleOrgPage = () => {
                   <select
                     value={groupBy}
                     onChange={(e) => setGroupBy(e.target.value)}
-                    className="appearance-none bg-white border border-[#e6e6e6] rounded-[10px] px-[18px] py-[8px] pr-[50px] text-[15px] font-inter text-[#626262] focus:outline-none focus:ring-2 focus:ring-[#2b6171]"
+                    className="appearance-none bg-white border border-[#e6e6e6] rounded-[10px] px-[18px] py-[8px] pr-[50px] text-[15px] font-inter text-[#626262]"
                   >
                     <option value="">Group</option>
                     {groups.map((g, i) => (
@@ -288,7 +304,7 @@ const PeopleOrgPage = () => {
                   <select
                     value={departmentBy}
                     onChange={(e) => setDepartmentBy(e.target.value)}
-                    className="appearance-none bg-white border border-[#e6e6e6] rounded-[10px] px-[18px] py-[8px] pr-[50px] text-[15px] font-inter text-[#626262] focus:outline-none focus:ring-2 focus:ring-[#2b6171]"
+                    className="appearance-none bg-white border border-[#e6e6e6] rounded-[10px] px-[18px] py-[8px] pr-[50px] text-[15px] font-inter text-[#626262]"
                   >
                     <option value="">Department</option>
                     {departments.map((d, i) => (
@@ -352,24 +368,12 @@ const PeopleOrgPage = () => {
                           }
                         />
                       </th>
-                      <th className="text-left py-[16px] text-[14px] font-poppins text-[#b5b7c0]">
-                        First name
-                      </th>
-                      <th className="text-left py-[16px] text-[14px] font-poppins text-[#b5b7c0]">
-                        Last name
-                      </th>
-                      <th className="text-left py-[16px] text-[14px] font-poppins text-[#b5b7c0]">
-                        Job
-                      </th>
-                      <th className="text-left py-[16px] text-[14px] font-poppins text-[#b5b7c0]">
-                        Department
-                      </th>
-                      <th className="text-left py-[16px] text-[14px] font-poppins text-[#b5b7c0]">
-                        Hired
-                      </th>
-                      <th className="text-center py-[16px] text-[14px] font-poppins text-[#b5b7c0]">
-                        Status
-                      </th>
+                      <th className="text-left py-[16px] text-[14px] font-poppins text-[#b5b7c0]">First name</th>
+                      <th className="text-left py-[16px] text-[14px] font-poppins text-[#b5b7c0]">Last name</th>
+                      <th className="text-left py-[16px] text-[14px] font-poppins text-[#b5b7c0]">Job</th>
+                      <th className="text-left py-[16px] text-[14px] font-poppins text-[#b5b7c0]">Department</th>
+                      <th className="text-left py-[16px] text-[14px] font-poppins text-[#b5b7c0]">Hired</th>
+                      <th className="text-center py-[16px] text-[14px] font-poppins text-[#b5b7c0]">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -439,15 +443,20 @@ const PeopleOrgPage = () => {
             )}
           </div>
 
-          {/* Floating Chat Button */}
+          {/* Floating Chat Button (example) */}
           <div className="fixed bottom-[148px] right-[10px] w-[36px] h-[36px] bg-[#2b6171] rounded-full flex items-center justify-center cursor-pointer hover:bg-[#1e4a57] transition-colors shadow-lg">
             <img src="/images/img_group_white_a700.svg" alt="chat" className="w-[18px] h-[14px]" />
           </div>
         </div>
       </div>
 
-      {/* Create Modal */}
-      <CreateEmployeeModal open={openCreateModal} onClose={() => setOpenCreateModal(false)} />
+      {/* Create Modal – pass onCreated to refresh immediately */}
+      <CreateEmployeeModal
+        open={openCreateModal}
+        onClose={() => setOpenCreateModal(false)}
+        onCreated={handleCreated}
+        orgId={orgId}
+      />
     </div>
   );
 };

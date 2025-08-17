@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 const SearchInput = ({ value, onChange, onSearch, className = '' }) => (
   <div className={`relative ${className}`}>
@@ -40,8 +40,99 @@ const RowArrow = () => (
   </button>
 );
 
+/* -------- New Team Modal -------- */
+const NewTeamModal = ({ open, onClose, onCreate }) => {
+  const [name, setName] = useState('');
+  const [desc, setDesc] = useState('');
+  const [err, setErr] = useState('');
+  const nameRef = useRef(null);
+
+  useEffect(() => {
+    if (open) {
+      setErr('');
+      setTimeout(() => nameRef.current?.focus(), 50);
+    } else {
+      setName('');
+      setDesc('');
+      setErr('');
+    }
+  }, [open]);
+
+  useEffect(() => {
+    const onKey = (e) => e.key === 'Escape' && open && onClose();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
+  const submit = () => {
+    if (!name.trim()) {
+      setErr('Team name is required.');
+      return;
+    }
+    onCreate({ name: name.trim(), description: desc.trim() });
+    onClose();
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[100]">
+      {/* overlay */}
+      <div onClick={onClose} className="absolute inset-0 bg-black/40" />
+      {/* dialog */}
+      <div className="absolute inset-0 grid place-items-center px-4">
+        <div className="w-full max-w-md rounded-2xl bg-white shadow-xl">
+          <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+            <h3 className="text-base font-semibold text-gray-900">New Team</h3>
+            <button onClick={onClose} className="h-8 w-8 grid place-items-center rounded-full hover:bg-gray-100">
+              <svg width="18" height="18" viewBox="0 0 24 24"><path fill="currentColor" d="M18.3 5.71a1 1 0 0 0-1.41 0L12 10.59 7.11 5.7A1 1 0 0 0 5.7 7.11L10.59 12l-4.9 4.89a1 1 0 1 0 1.41 1.41L12 13.41l4.89 4.9a1 1 0 0 0 1.41-1.41L13.41 12l4.9-4.89a1 1 0 0 0-.01-1.4Z"/></svg>
+            </button>
+          </div>
+
+          <div className="p-5 space-y-4">
+            <div>
+              <label className="block text-sm text-gray-700 mb-1">Team name</label>
+              <input
+                ref={nameRef}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g., DevOps"
+                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2b6171]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-700 mb-1">Description</label>
+              <textarea
+                value={desc}
+                onChange={(e) => setDesc(e.target.value)}
+                rows={4}
+                placeholder="Optional"
+                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2b6171] resize-none"
+              />
+            </div>
+
+            {err && <div className="text-sm text-red-600">{err}</div>}
+          </div>
+
+          <div className="p-5 pt-0">
+            <button
+              onClick={submit}
+              className="w-full rounded-xl bg-[#2b6171] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#214b59]"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* -------- Page -------- */
 const TeamsPage = () => {
   const [search, setSearch] = useState('');
+  const [showNew, setShowNew] = useState(false);
   const [teams, setTeams] = useState([
     { id: 1, name: 'Devops',    members: 4,  avgAge: 25, tenureYears: 0.7, malePct: 68, femalePct: 32, avatar: '/images/img_avatar_image_39.png' },
     { id: 2, name: 'Managers',  members: 5,  avgAge: 42, tenureYears: 3.2, malePct: 60, femalePct: 40 },
@@ -53,6 +144,22 @@ const TeamsPage = () => {
     if (!q) return teams;
     return teams.filter(t => t.name.toLowerCase().includes(q));
   }, [search, teams]);
+
+  const handleCreateTeam = ({ name, description }) => {
+    setTeams(prev => [
+      ...prev,
+      {
+        id: prev.length ? Math.max(...prev.map(p => p.id)) + 1 : 1,
+        name,
+        description,
+        members: 0,
+        avgAge: 0,
+        tenureYears: 0,
+        malePct: 50,
+        femalePct: 50,
+      }
+    ]);
+  };
 
   return (
     <div className="w-full bg-white">
@@ -66,7 +173,7 @@ const TeamsPage = () => {
             className="w-full sm:flex-1"
           />
           <button
-            onClick={() => {/* open new team modal here */}}
+            onClick={() => setShowNew(true)}
             className="self-end sm:self-auto rounded-xl bg-[#2b6171] px-4 py-2 text-sm font-medium text-white hover:bg-[#214b59]"
           >
             + New team
@@ -80,7 +187,7 @@ const TeamsPage = () => {
               <tr className="text-left text-[13px] font-medium text-[#9aa3af]">
                 <th className="py-3 px-3">Team name</th>
                 <th className="py-3 px-3">Members</th>
-                <th className="py-3 px-3">Last name</th>
+                <th className="py-3 px-3">Age &amp; tenure</th>
                 <th className="py-3 px-3">Gender distribution</th>
                 <th className="py-3 px-3"></th>
               </tr>
@@ -99,13 +206,13 @@ const TeamsPage = () => {
                   {/* Members */}
                   <td className="py-4 px-3 text-sm text-[#0f172a]">{t.members}</td>
 
-                  {/* Age / Tenure (the screenshot labels header as Last name, but shows age/tenure) */}
+                  {/* Age / Tenure */}
                   <td className="py-4 px-3">
                     <div className="text-sm text-[#0f172a]">Age {t.avgAge} years</div>
                     <div className="text-[12px] text-[#9aa3af]">Tenure: {t.tenureYears} years</div>
                   </td>
 
-                  {/* Gender bars + avatar overlay */}
+                  {/* Gender bars + avatar */}
                   <td className="py-4 px-3">
                     <div className="flex items-center gap-6">
                       <div className="flex-1 space-y-2">
@@ -147,6 +254,13 @@ const TeamsPage = () => {
           </button>
         </div>
       </div>
+
+      {/* Modal */}
+      <NewTeamModal
+        open={showNew}
+        onClose={() => setShowNew(false)}
+        onCreate={handleCreateTeam}
+      />
     </div>
   );
 };
