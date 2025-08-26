@@ -73,9 +73,9 @@ export default async function employeeCreateRoutes(fastify) {
     } catch (e) {
       await client.query('ROLLBACK');
       req.log.error(e);
-      return reply.code(500).send({ error: 'Failed to create employee' });
+      return reply.code(500).send({ error: 'Failed! to create employee' });
     } finally {
       client.release();
-    }
+       }
   });
 }
