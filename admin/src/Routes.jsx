@@ -17,8 +17,7 @@ import OrgPage from './pages/Org';
 
  
 // Notifications
-import Notifications from './pages/Notifications';
-
+ 
 // Employee
 import Employee from './pages/Employee';
 import Attendance from './pages/Employee/Attendance';
@@ -31,8 +30,9 @@ import Presence from './pages/Employee/Presence';
 import LeaveHistory from './pages/Employee/LeaveHistory';
 
 // Inbox & Leave
-import TimeOff from './pages/Inbox/TimeOff';
-import LeaveRequest from './pages/Leave/Request';
+import Inbox from './pages/Inbox';
+
+ import LeaveRequest from './pages/Leave/Request';
 
 // Social
 import SocialPost from './pages/Social/Post';
@@ -68,7 +68,6 @@ export default function AppRoutes() {
 
 
       {/* Notifications */}
-      <Route path="/notifications" element={<Notifications />} />
 
       {/* Employee */}
       <Route path="/employee" element={<Employee />} />
@@ -83,8 +82,9 @@ export default function AppRoutes() {
       {/* 🔥 Removed: /employee/professional/contracts */}
 
       {/* Inbox & Leave */}
-      <Route path="/inbox/time-off" element={<TimeOff />} />
-      <Route path="/leave/request" element={<LeaveRequest />} />
+      <Route path="/inbox" element={<Inbox />} />
+ 
+      <Route path="/leave" element={<LeaveRequest />} />
 
       {/* Social */}
       <Route path="/social/post" element={<SocialPost />} />

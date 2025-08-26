@@ -1,0 +1,3 @@
+PGPASSWORD='bteamX@ssw0rd' pg_dump \
+  -h 31.97.192.204 -p 5432 -U slashhr_bteam -d slashhr \
+  > /root/slashhr_backup_$(date +%F).sql

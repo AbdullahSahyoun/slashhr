@@ -9,24 +9,49 @@ import { listEmployeesByCompany } from '../controllers/getEmployeesByCompanyCont
 import { getDepartments } from '../controllers/employeeDepartmentsController.js';
 
 export default async function employeeRoutes(app) {
-  // Personal info routes
-  app.get('/personal', listPersonal);
-  app.get('/:id/personal', getPersonal);
+  // Personal info
+  app.get('/personal',
+    { schema: { tags: ['Employee'], summary: 'List personal info (all / paged)' } },
+    listPersonal
+  );
+  app.get('/:id/personal',
+    { schema: { tags: ['Employee'], summary: 'Get personal info by employee id' } },
+    getPersonal
+  );
 
-  // Professional info route
-  app.get('/:id/professional', getProfessional);
+  // Professional info
+  app.get('/:id/professional',
+    { schema: { tags: ['Employee'], summary: 'Get professional info by employee id' } },
+    getProfessional
+  );
 
-  // Other info routes
-  app.get('/:id/documents', listEmployeeDocuments);
-  app.get('/:id/leave-history', listEmployeeLeaveHistory);
-  app.get('/:id/letter-history', listEmployeeLetterHistory);
+  // Documents / Leave / Letters
+  app.get('/:id/documents',
+    { schema: { tags: ['Employee'], summary: 'List employee documents' } },
+    listEmployeeDocuments
+  );
+  app.get('/:id/leave-history',
+    { schema: { tags: ['Employee'], summary: 'List employee leave history' } },
+    listEmployeeLeaveHistory
+  );
+  app.get('/:id/letter-history',
+    { schema: { tags: ['Employee'], summary: 'List employee letter history' } },
+    listEmployeeLetterHistory
+  );
 
-  // Name only route
-  app.get('/:id/name', getEmployeeNameById);
+  // Name-only
+  app.get('/:id/name',
+    { schema: { tags: ['Employee'], summary: 'Get employee name by id' } },
+    getEmployeeNameById
+  );
 
-  // ✅ New route: Get all employees by company/orgId
-// in _employee/routes/routes.js
-app.get('/company/:orgId/employees', listEmployeesByCompany);
-app.get('/company/:orgId/departments', getDepartments);
-
+  // Company-scoped
+  app.get('/company/:orgId/employees',
+    { schema: { tags: ['Employee'], summary: 'List employees by organization id' } },
+    listEmployeesByCompany
+  );
+  app.get('/company/:orgId/departments',
+    { schema: { tags: ['Employee'], summary: 'List departments by organization id' } },
+    getDepartments
+  );
 }
