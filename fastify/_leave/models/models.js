@@ -57,17 +57,31 @@ export async function create(
 }
 
 /** ──────────────────────────────────────────────────────────────
- *  UPDATE (by LeaveID)
+ *  UPDATE STATUS ONLY (by LeaveID)
+ *  ────────────────────────────────────────────────────────────── */
+export async function updateStatusById(fastify, leaveId, status) {
+  const { rows } = await fastify.pg.query(
+    `UPDATE ${TABLE}
+        SET "Status" = $1
+      WHERE "LeaveID" = $2
+      RETURNING ${COLS}`,
+    [status, leaveId]
+  );
+  return rows[0] || null;
+}
+
+/** ──────────────────────────────────────────────────────────────
+ *  (Optional) General update (kept for reuse)
  *  changes: { StartTime?, EndTime?, Purpose?, Status? }
  *  ────────────────────────────────────────────────────────────── */
 export async function updateById(fastify, leaveId, changes = {}) {
   const sets = [];
   const params = [];
 
-  if (changes.StartTime !== undefined) { params.push(changes.StartTime); sets.push(`"StartTime" = $${params.length}`); }
-  if (changes.EndTime   !== undefined) { params.push(changes.EndTime);   sets.push(`"EndTime"   = $${params.length}`); }
-  if (changes.Purpose   !== undefined) { params.push(changes.Purpose);   sets.push(`"Purpose"   = $${params.length}`); }
-  if (changes.Status    !== undefined) { params.push(changes.Status);    sets.push(`"Status"    = $${params.length}`); }
+  if ('StartTime' in changes) { params.push(changes.StartTime); sets.push(`"StartTime" = $${params.length}`); }
+  if ('EndTime'   in changes) { params.push(changes.EndTime);   sets.push(`"EndTime"   = $${params.length}`); }
+  if ('Purpose'   in changes) { params.push(changes.Purpose);   sets.push(`"Purpose"   = $${params.length}`); }
+  if ('Status'    in changes) { params.push(changes.Status);    sets.push(`"Status"    = $${params.length}`); }
 
   if (!sets.length) return await getById(fastify, leaveId);
 

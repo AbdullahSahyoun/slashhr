@@ -1,5 +1,5 @@
 // _leave/controllers/controllers.js
-// Leave controllers: thin logic + validation, call _leave/models/Model.js
+// Leave controllers: thin logic + validation, call _leave/models/models.js
 
 import * as Leave from '../models/models.js';
 
@@ -54,23 +54,45 @@ export async function create(fastify, req, reply) {
   return reply.code(201).send(created);
 }
 
-/** PATCH /leaves/:id 
- *  body: { StartTime?, EndTime?, Purpose?, Status? }
+/** PATCH /leaves/update/:id   (route calls ctrl.update)
+ *  body: { Status }  // ONLY status is allowed
  */
+// _leave/controllers/controllers.js
 export async function update(fastify, req, reply) {
   const id = Number(req.params.id);
+  const { Status } = req.body ?? {};
+
+  const allowed = ['Pending', 'Approved', 'Rejected'];
   if (!id) return reply.code(400).send({ message: 'leave id is required' });
+  if (!allowed.includes(Status)) {
+    return reply.code(400).send({ message: 'Status must be Pending, Approved, or Rejected' });
+  }
 
-  const changes = {};
-  const { StartTime, EndTime, Purpose, Status } = req.body ?? {};
-  if (StartTime !== undefined) changes.StartTime = StartTime;
-  if (EndTime   !== undefined) changes.EndTime   = EndTime;
-  if (Purpose   !== undefined) changes.Purpose   = Purpose;
-  if (Status    !== undefined) changes.Status    = Status;
+  try {
+    // If you switched to model helper:
+    // const updated = await Leave.updateStatusById(fastify, id, Status);
+    const { rows, rowCount } = await fastify.pg.query(
+      `UPDATE organization."tblLeave"
+         SET "Status" = $1
+       WHERE "LeaveID" = $2
+       RETURNING "LeaveID","TenantID","EmployeeID","StartTime","EndTime","Purpose","Status","CreatedAt"`,
+      [Status, id]
+    );
+    if (rowCount === 0) return reply.code(404).send({ message: 'Leave not found' });
 
-  const updated = await Leave.updateById(fastify, id, changes);
-  if (!updated) return reply.code(404).send({ message: 'Leave not found or no fields to update' });
-  return updated;
+    const updated = rows[0];
+    return reply.send(updated);
+  } catch (err) {
+    req.log?.error(err);
+    // DEV-ONLY: expose details to debug. Remove in prod.
+    return reply.code(500).send({
+      message: 'Database error',
+      code: err.code,
+      detail: err.detail,
+      hint: err.hint,
+      where: err.where
+    });
+  }
 }
 
 /** DELETE /leaves/:id */

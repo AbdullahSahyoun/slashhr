@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from '../../components/common/Sidebar';
 
-// Tab sections (removed Overview, Settings, Documents)
+// Visible tabs
 import People from './people';
 import Departments from './Departments';
 import Teams from './Teams';
@@ -9,24 +9,22 @@ import OrgChart from './OrgChart';
 import Jobs from './Jobs';
 import Analytics from './Analytics';
 
+// Hidden details tab (opened programmatically)
+import Team from './Teams/team';
+
 const OrgPage = () => {
   const [selectedOrg, setSelectedOrg] = useState(1);
   const [orgName, setOrgName] = useState('');
   const [activeTab, setActiveTab] = useState('People'); // default to People
+  const [selectedTeam, setSelectedTeam] = useState(null); // { id, name } | null
 
   const API = import.meta.env.VITE_API_URL || 'http://localhost:3000';
   const token = localStorage.getItem('token');
 
-  // Removed 'Overview', 'Documents', 'Settings'
-  const tabs = [
-    'People',
-    'Departments',
-    'Teams',
-    'OrgChart',
-    'Jobs',
-    'Analytics',
-  ];
+  // Show these in the header (Team is intentionally NOT listed here)
+  const tabs = ['People', 'Departments', 'Teams', 'OrgChart', 'Jobs', 'Analytics'];
 
+  // Load organization display name
   useEffect(() => {
     if (!selectedOrg) return;
     (async () => {
@@ -47,15 +45,62 @@ const OrgPage = () => {
     })();
   }, [selectedOrg, API, token]);
 
+  // Optional deep-link support: /org?tab=Team&id=123
+  useEffect(() => {
+    const qs = new URLSearchParams(location.search);
+    const tab = qs.get('tab');
+    const id = Number(qs.get('id'));
+    const name = qs.get('name') || '';
+    if (tab === 'Team' && id) {
+      setSelectedTeam({ id, name });
+      setActiveTab('Team');
+    }
+  }, []);
+
+  // Called by Teams list when user clicks the arrow
+  const openTeamTab = (team) => {
+    setSelectedTeam(team); // { id, name }
+    setActiveTab('Team');
+    // If you want to reflect it in the URL without router, uncomment:
+    // const url = new URL(window.location);
+    // url.searchParams.set('tab', 'Team');
+    // url.searchParams.set('id', team.id);
+    // url.searchParams.set('name', team.name || '');
+    // window.history.replaceState({}, '', url);
+  };
+
   const renderContent = () => {
     switch (activeTab) {
-      case 'People':      return <People orgId={selectedOrg} />;
-      case 'Departments': return <Departments orgId={selectedOrg} />;
-      case 'Teams':       return <Teams orgId={selectedOrg} />;
-      case 'OrgChart':    return <OrgChart orgId={selectedOrg} />;
-      case 'Jobs':        return <Jobs orgId={selectedOrg} />;
-      case 'Analytics':   return <Analytics orgId={selectedOrg} />;
-      default:            return <People orgId={selectedOrg} />; // fallback
+      case 'People':
+        return <People orgId={selectedOrg} />;
+
+      case 'Departments':
+        return <Departments orgId={selectedOrg} />;
+
+      case 'Teams':
+        return <Teams orgId={selectedOrg} onOpenTeam={openTeamTab} />;
+
+      case 'OrgChart':
+        return <OrgChart orgId={selectedOrg} />;
+
+      case 'Jobs':
+        return <Jobs orgId={selectedOrg} />;
+
+      case 'Analytics':
+        return <Analytics orgId={selectedOrg} />;
+
+      // Hidden details tab
+      case 'Team':
+        return (
+          <Team
+            teamId={selectedTeam?.id}
+            teamName={selectedTeam?.name}
+            onBack={() => setActiveTab('Teams')}
+          />
+        );
+
+      default:
+        return <People orgId={selectedOrg} />;
     }
   };
 
@@ -72,13 +117,15 @@ const OrgPage = () => {
             <div className="flex flex-wrap items-center gap-4 sm:gap-6">
               <img src="/images/img_group_2570.svg" alt="Org Icon" className="w-11 h-11" />
               <h1 className="text-xl sm:text-2xl font-medium text-black">
-                Organization &gt; {orgName}
+                {activeTab === 'Team' && selectedTeam?.name
+                  ? <>Organization &gt; Teams &gt; {selectedTeam.name}</>
+                  : <>Organization &gt; {orgName}</>}
               </h1>
             </div>
             <div className="w-full h-[1px] bg-header-1" />
           </div>
 
-          {/* Tabs */}
+          {/* Tabs (Team is hidden) */}
           <div className="flex flex-col px-4 sm:px-6 lg:px-12">
             <div className="flex items-start gap-4 sm:gap-6 overflow-x-auto">
               {tabs.map((tab) => (

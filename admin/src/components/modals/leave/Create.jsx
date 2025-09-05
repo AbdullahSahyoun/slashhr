@@ -1,81 +1,102 @@
 import React, { useEffect, useMemo, useState } from 'react';
+const API_ORIGIN = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE = `${API_ORIGIN}/leaves`;
 
-const API_BASE = '/api/leave'; // change to your Fastify prefix
 
-const toISO = (v) => {
+
+ 
+// Convert yyyy-mm-dd → yyyy-mm-ddT00:00:00Z (UTC midnight)
+const toISODateTime = (v) => {
   if (!v) return '';
-  if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
-  const m = v.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  return m ? `${m[3]}-${m[2]}-${m[1]}` : '';
+  return /^\d{4}-\d{2}-\d{2}$/.test(v) ? `${v}T00:00:00Z` : '';
 };
+
 const diffDaysInclusive = (aISO, bISO) => {
   const a = new Date(aISO); const b = new Date(bISO);
   if (isNaN(a) || isNaN(b)) return 0;
-  const ms = b.setHours(12) - a.setHours(12);
+  const ms = b.setHours(12,0,0,0) - a.setHours(12,0,0,0); // normalize to noon
   return Math.max(0, Math.floor(ms / 86400000) + 1);
 };
 
-export default function LeaveCreate({ isOpen, onClose, onCreated, tenantId, userId, availableDays = 17 }) {
+async function fetchJson(url, init) {
+  const res = await fetch(url, init);
+  const ct = res.headers.get('content-type') || '';
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`HTTP ${res.status} ${res.statusText}\n${text.slice(0, 300)}`);
+  }
+  if (!ct.includes('application/json')) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`Expected JSON, got ${ct}\n${text.slice(0, 300)}`);
+  }
+  return res.json();
+}
+
+export default function LeaveCreate({
+  isOpen, onClose, onCreated,
+  tenantId, userId, // userId = EmployeeID
+  availableDays = 17
+}) {
   const [community, setCommunity] = useState('Holidays');
-  const [fromDate, setFromDate] = useState('');
-  const [untilDate, setUntilDate] = useState('');
+  const [fromDate, setFromDate] = useState('');   // yyyy-mm-dd
+  const [untilDate, setUntilDate] = useState(''); // yyyy-mm-dd
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
   const [overlap, setOverlap] = useState({ company: 0, team: 0, loading: false });
 
-  const duration = useMemo(() => diffDaysInclusive(toISO(fromDate), toISO(untilDate)), [fromDate, untilDate]);
+  const fromISO = toISODateTime(fromDate);
+  const untilISO = toISODateTime(untilDate);
+  const duration = useMemo(() => diffDaysInclusive(fromISO, untilISO), [fromISO, untilISO]);
 
   useEffect(() => {
     if (!isOpen) return;
-    const f = async () => {
-      const fISO = toISO(fromDate); const tISO = toISO(untilDate);
-      if (!fISO || !tISO) return;
+    (async () => {
+      if (!fromISO || !untilISO) return;
       setOverlap(o => ({ ...o, loading: true }));
       try {
-        const r = await fetch(`${API_BASE}/overlap?from=${fISO}&until=${tISO}`);
-        const j = r.ok ? await r.json() : { company: 0, team: 0 };
+        // Optional: if you didn't add this route, this will silently fall back.
+        const j = await fetchJson(`${API_BASE}/overlap?from=${encodeURIComponent(fromISO)}&until=${encodeURIComponent(untilISO)}`);
         setOverlap({ company: j.company || 0, team: j.team || 0, loading: false });
       } catch {
         setOverlap({ company: 0, team: 0, loading: false });
       }
-    };
-    f();
-  }, [isOpen, fromDate, untilDate]);
+    })();
+  }, [isOpen, fromISO, untilISO]);
 
   const validate = () => {
     const e = {};
-    const fISO = toISO(fromDate), tISO = toISO(untilDate);
     if (!community) e.community = 'Required';
-    if (!fISO) e.fromDate = 'Invalid date';
-    if (!tISO) e.untilDate = 'Invalid date';
-    if (fISO && tISO && new Date(tISO) < new Date(fISO)) e.untilDate = 'Must be after From';
+    if (!fromDate) e.fromDate = 'Required';
+    if (!untilDate) e.untilDate = 'Required';
+    if (fromISO && untilISO && new Date(untilISO) < new Date(fromISO)) e.untilDate = 'Must be after From';
     if (duration === 0) e.duration = 'Select a range';
     if (duration > availableDays) e.available = 'Not enough balance';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
 
-  const submit = async (e) => {
-    e.preventDefault();
+  const submit = async (ev) => {
+    ev.preventDefault();
     if (!validate()) return;
     setSaving(true);
     try {
       const payload = {
         TenantID: tenantId,
-        UserID: userId,
-        Community: community,
-        StartTime: toISO(fromDate),
-        EndTime: toISO(untilDate),
-        Purpose: note || null
+        EmployeeID: userId,   // ✅ DB expects EmployeeID
+        Community: community, // keep only if you have this column
+        StartTime: fromISO,   // ✅ date-time format for Ajv
+        EndTime: untilISO,    // ✅ date-time format
+        Purpose: note || null,
+        Status: 'Pending'
       };
-      const r = await fetch(`${API_BASE}/requests`, {
+      // ✅ align with your working backend: POST /leaves/create
+      const data = await fetchJson(`${API_BASE}/create`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // credentials: 'include', // uncomment if cookie-based auth
         body: JSON.stringify(payload)
       });
-      if (!r.ok) throw new Error('Failed to create leave');
-      const data = await r.json();
       onCreated && onCreated(data);
       onClose && onClose();
     } catch (err) {
@@ -181,3 +202,4 @@ export default function LeaveCreate({ isOpen, onClose, onCreated, tenantId, user
     </div>
   );
 }
+  

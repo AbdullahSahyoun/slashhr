@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 
-const API_BASE = '/api/leave';
+const API_ORIGIN = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE = `${API_ORIGIN}/leaves`;
 
 export default function LeaveDelete({ isOpen, onClose, onDeleted, id }) {
   const [busy, setBusy] = useState(false);
@@ -10,7 +11,7 @@ export default function LeaveDelete({ isOpen, onClose, onDeleted, id }) {
     setError('');
     setBusy(true);
     try {
-      const r = await fetch(`${API_BASE}/requests/${id}`, { method: 'DELETE' });
+      const r = await fetch(`${API_BASE}/delete/${id}`, { method: 'DELETE' });
       if (!r.ok) throw new Error('Failed to delete leave');
       onDeleted && onDeleted(id);
       onClose && onClose();

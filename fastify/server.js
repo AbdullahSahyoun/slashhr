@@ -17,7 +17,12 @@ import catalogRoutes from './_catalog/routes/routes.js';
 import postRoutes from './_post/routes/routes.js';
 import createEmpTempRoutes from './_createEmpTemp/routes.js';
 import leaveRoutes from './_leave/routes/routes.js';
+import notifications from './_notifications/routes/routes.js';
 
+
+import teamRoutes  from './_team/routes/routes.js';
+import jobRoutes from './_job/routes/routes.js';
+import calendarRoutes from './_calendar/routes/routes.js';
 dotenv.config();
 
 /* ============================
@@ -115,6 +120,8 @@ await app.register(fastifySwagger, {
       { name: 'Timeline', description: 'Posts / social timeline' },
       { name: 'Create-Temp', description: 'Temp user -> employee' },
       { name: 'Leave', description: 'Leave management' }, //  your Leave section
+      { name: 'calendar', description: 'calendar management' }, //  your Leave section
+
     ],
     components: {
       securitySchemes: {
@@ -145,7 +152,10 @@ await app.register(catalogRoutes,         { prefix: '/catalog' });              
 await app.register(postRoutes,            { prefix: '/timeline' });             // 'Timeline'
 await app.register(createEmpTempRoutes,   { prefix: '/api/create-temp' });      // 'Create-Temp'
 await app.register(leaveRoutes,           { prefix: '/leaves' });               // 'Leave' — ensure each route has schema.tags=['Leave']
-
+await app.register(notifications,         { prefix: '/notifications' });               // 'Leave' — ensure each route has schema.tags=['Leave']
+await app.register(teamRoutes,         { prefix: '/team' });               // 'Leave' — ensure each route has schema.tags=['Leave']
+await app.register(jobRoutes ,         { prefix: '/job' });               // 'Leave' — ensure each route has schema.tags=['Leave']
+await app.register(calendarRoutes, { prefix: '/calendar' });
 /* ============================
    Health / Root
 ============================ */

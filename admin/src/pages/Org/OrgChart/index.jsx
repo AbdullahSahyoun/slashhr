@@ -1,18 +1,26 @@
 // src/pages/Org/OrgChart.jsx
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState, useLayoutEffect } from 'react';
 import ReactFlow, {
   Background,
   Controls,
   useNodesState,
   useEdgesState,
+  Handle,
+  Position,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-/* ---------- Custom Person Node ---------- */
+/* ---------- Custom Person Node (with handles for edges) ---------- */
 const PersonNode = ({ data }) => {
   const { name, title, avatar, chip } = data || {};
   return (
-    <div className="rounded-xl border border-gray-300 bg-white shadow-sm min-w-[180px] max-w-[220px]">
+    <div className="relative rounded-xl border border-gray-300 bg-white shadow-sm min-w-[180px] max-w-[220px]">
+      {/* Edge handles */}
+      <Handle type="target" position={Position.Top}
+        style={{ width: 10, height: 10, background: '#9CA3AF', borderRadius: 999 }} id="in" />
+      <Handle type="source" position={Position.Bottom}
+        style={{ width: 10, height: 10, background: '#9CA3AF', borderRadius: 999 }} id="out" />
+
       <div className="flex flex-col items-center p-3">
         <img
           src={avatar || '/images/img_avatar_image_39.png'}
@@ -35,12 +43,11 @@ const PersonNode = ({ data }) => {
   );
 };
 
-/* ---------- Page ---------- */
 const OrgChart = ({ orgId }) => {
   const [scope, setScope] = useState('Workplace');
   const [q, setQ] = useState('');
 
-  // Demo data (swap with your API later)
+  // Demo data (swap with API later)
   const people = useMemo(
     () => ({
       ceo: { id: 'ceo', name: 'Manal Battache', title: 'Directeur des Ressources Humaines', avatar: '/images/img_avatar_image_39.png', chip: '7y' },
@@ -58,7 +65,7 @@ const OrgChart = ({ orgId }) => {
     []
   );
 
-  // Simple manual layout (looks like your screenshot)
+  // Manual layout
   const nodeW = 220;
   const gapX = 60;
   const baseY = 0;
@@ -97,10 +104,10 @@ const OrgChart = ({ orgId }) => {
   ];
 
   const nodeTypes = useMemo(() => ({ person: PersonNode }), []);
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
+  const [nodes, , onNodesChange] = useNodesState(initialNodes);
+  const [edges, , onEdgesChange] = useEdgesState(initialEdges);
 
-  // Toolbar actions (center helpers)
+  // Center helpers
   const goTop = useCallback(() => {
     document.querySelector('.react-flow__renderer')?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
   }, []);
@@ -108,7 +115,7 @@ const OrgChart = ({ orgId }) => {
     document.querySelector('.react-flow__renderer')?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
   }, []);
 
-  // Search: dim non‑matches
+  // Search dim
   const visibleNodes = useMemo(() => {
     const ql = q.trim().toLowerCase();
     if (!ql) return nodes;
@@ -118,57 +125,83 @@ const OrgChart = ({ orgId }) => {
     });
   }, [nodes, q]);
 
+  // Measure header (tabs + filters) to make the canvas fill the rest of the viewport
+  const headerRef = useRef(null);
+  const [canvasHeight, setCanvasHeight] = useState('60vh');
+
+  useLayoutEffect(() => {
+    const calc = () => {
+      const h = headerRef.current?.offsetHeight || 0;
+      setCanvasHeight(`calc(100vh - ${h + 16}px)`); // +16 for bottom margin
+    };
+    calc();
+    window.addEventListener('resize', calc);
+    return () => window.removeEventListener('resize', calc);
+  }, []);
+
   return (
-    <div className="w-full bg-white">
-      {/* Toolbar */}
-      <div className="mx-auto mt-4 w-full max-w-[1180px]">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <select
-              value={scope}
-              onChange={(e) => setScope(e.target.value)}
-              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2b6171]"
-            >
-              <option>Workplace</option>
-              <option>My Department</option>
-              <option>My Team</option>
-            </select>
+    <div className="w-full min-h-screen bg-white flex flex-col">
+      {/* ===== Tabs (kept) ===== */}
+      <div ref={headerRef}>
+        <div className="mx-auto w-full max-w-[1180px] px-2 pt-4">
+          <ul className="flex gap-2 border-b border-gray-200">
+            <li><button className="px-3 py-2 text-sm rounded-t-md bg-white border-x border-t border-gray-200 -mb-px font-medium">Org Chart</button></li>
+            <li><button className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900">Departments</button></li>
+            <li><button className="px-3 py-2 text-sm text-gray-600 hover:text-gray-900">Teams</button></li>
+            {/* If you already have your own Tabs wrapper, keep that and remove this UL */}
+          </ul>
+        </div>
 
-            <div className="relative w-[240px] sm:w-[320px]">
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Search"
-                className="w-full rounded-md border border-gray-200 bg-white pl-9 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2b6171]"
-              />
-              <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M10 18a8 8 0 100-16 8 8 0 000 16z" />
-              </svg>
+        {/* ===== Filters / Search (kept) ===== */}
+        <div className="mx-auto w-full max-w-[1180px] px-2">
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <select
+                value={scope}
+                onChange={(e) => setScope(e.target.value)}
+                className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2b6171]"
+              >
+                <option>Workplace</option>
+                <option>My Department</option>
+                <option>My Team</option>
+              </select>
+
+              <div className="relative w-[240px] sm:w-[320px]">
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search"
+                  className="w-full rounded-md border border-gray-200 bg-white pl-9 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2b6171]"
+                />
+                <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M10 18a8 8 0 100-16 8 8 0 000 16z" />
+                </svg>
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2">
-            <button onClick={() => setScope('My Department')} className="rounded-full border border-gray-200 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50">
-              My Department
-            </button>
-            <button onClick={goTop} className="rounded-full border border-gray-200 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50">
-              Top of the Org
-            </button>
-            <button onClick={goMe} className="rounded-full border border-gray-200 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50">
-              Me
-            </button>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setScope('My Department')} className="rounded-full border border-gray-200 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50">
+                My Department
+              </button>
+              <button onClick={goTop} className="rounded-full border border-gray-200 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50">
+                Top of the Org
+              </button>
+              <button onClick={goMe} className="rounded-full border border-gray-200 px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50">
+                Me
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Canvas */}
-      <div className="mx-auto mt-4 mb-8 h-[640px] w-full max-w-[1180px] rounded-xl border border-gray-200">
+      {/* ===== Canvas fills the remaining viewport ===== */}
+      <div className="mx-auto mt-4 mb-4 w-full max-w-[1180px] rounded-xl border border-gray-200 overflow-hidden" style={{ height: canvasHeight }}>
         <ReactFlow
           nodes={visibleNodes}
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
-          nodeTypes={nodeTypes}
+          nodeTypes={{ person: PersonNode }}
           panOnScroll
           zoomOnScroll
           fitView
@@ -179,6 +212,7 @@ const OrgChart = ({ orgId }) => {
             style: { stroke: '#9CA3AF' },
             markerEnd: { type: 'arrowclosed', color: '#9CA3AF' },
           }}
+          style={{ width: '100%', height: '100%' }}
         >
           <Background gap={24} size={1} color="#f3f4f6" />
           <Controls position="bottom-right" />

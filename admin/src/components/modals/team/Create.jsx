@@ -63,30 +63,18 @@ const RowArrow = () => (
   </button>
 );
 
-/* ------------ Create Job Modal ------------ */
+/* ------------ Create Job Modal (job_titles) ------------ */
 function CreateJobModal({ open, onClose, onCreated }) {
   const [name, setName] = useState('');
-  const [legalEntities, setLegalEntities] = useState([]);
-  const [selectedLegalEntities, setSelectedLegalEntities] = useState([]);
-  const [levels, setLevels] = useState([]);
-  const [levelInput, setLevelInput] = useState('');
+  const [active, setActive] = useState(true);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
 
   useEffect(() => {
     if (!open) return;
     setErr('');
-    (async () => {
-      try {
-        const data = await getJSON(`${API_ORIGIN}/catalog/legal-entities?tenantId=${TENANT_ID}`);
-        const items = data.items || [];
-        setLegalEntities(items);
-        setSelectedLegalEntities(items.map(o => o.id)); // default “All”
-      } catch (e) {
-        setErr(e.message || 'Failed to load legal entities');
-        setLegalEntities([]);
-      }
-    })();
+    setName('');
+    setActive(true);
   }, [open]);
 
   useEffect(() => {
@@ -96,17 +84,6 @@ function CreateJobModal({ open, onClose, onCreated }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [open, saving, onClose]);
 
-  const allSelected = legalEntities.length > 0 && selectedLegalEntities.length === legalEntities.length;
-  const toggleAll = () => setSelectedLegalEntities(allSelected ? [] : legalEntities.map(o => o.id));
-
-  const addLevel = () => {
-    const v = levelInput.trim();
-    if (!v) return;
-    setLevels(prev => [...prev, { id: crypto.randomUUID(), label: v }]);
-    setLevelInput('');
-  };
-  const removeLevel = (id) => setLevels(prev => prev.filter(l => l.id !== id));
-
   const canSave = name.trim().length > 0 && !saving;
 
   const handleSave = async () => {
@@ -114,19 +91,22 @@ function CreateJobModal({ open, onClose, onCreated }) {
     setSaving(true);
     setErr('');
     try {
-      // Adjust URL if your backend path differs
       const payload = {
-        name: name.trim(),
-        legalEntityIds: selectedLegalEntities,
-        levels: levels.map(l => l.label.trim()).filter(Boolean),
+        TenantID: TENANT_ID,
+        title_name: name.trim(),
+        is_active: !!active,
       };
-      const created = await postJSON(`${API_ORIGIN}/api/jobs?tenantId=${TENANT_ID}`, payload);
-      onCreated?.(created?.job || created);
-      setName('');
-      setLevels([]);
+      const created = await postJSON(`${API_ORIGIN}/job-titles`, payload);
+      onCreated?.(created);
       onClose?.();
     } catch (e) {
-      setErr(e.message || 'Save failed');
+      // 409 from unique (TenantID, lower(title_name))
+      try {
+        const parsed = JSON.parse(e.message);
+        setErr(parsed?.message || 'Save failed');
+      } catch {
+        setErr(e.message || 'Save failed');
+      }
     } finally {
       setSaving(false);
     }
@@ -142,10 +122,8 @@ function CreateJobModal({ open, onClose, onCreated }) {
           <div className="px-4 pt-4 pb-2 border-b border-gray-100">
             <div className="flex items-start justify-between">
               <div>
-                <h3 className="text-[17px] font-semibold text-[#2b6171]">New Job</h3>
-                <p className="text-xs text-gray-500 mt-1">
-                  Enter a name for the new role and select the applicable legal entities.
-                </p>
+                <h3 className="text-[17px] font-semibold text-[#2b6171]">New Job Title</h3>
+                <p className="text-xs text-gray-500 mt-1">Create a job title under this tenant.</p>
               </div>
               <button
                 className="p-1 rounded-full text-gray-500 hover:bg-gray-100"
@@ -161,7 +139,7 @@ function CreateJobModal({ open, onClose, onCreated }) {
             {err && <div className="text-sm text-red-600">{err}</div>}
 
             <label className="block">
-              <span className="block text-sm text-gray-700 mb-1">Name</span>
+              <span className="block text-sm text-gray-700 mb-1">Title name</span>
               <input
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2b6171]"
                 placeholder="e.g. Software Engineer"
@@ -170,87 +148,14 @@ function CreateJobModal({ open, onClose, onCreated }) {
               />
             </label>
 
-            <div>
-              <span className="block text-sm text-gray-700 mb-1">Legal entities</span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={toggleAll}
-                  className="inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm bg-white hover:bg-gray-50"
-                >
-                  <span className="inline-flex items-center justify-center w-5 h-5 text-[11px] rounded bg-[#2b6171] text-white">
-                    {allSelected ? legalEntities.length : selectedLegalEntities.length}
-                  </span>
-                  {allSelected ? 'All' : 'Selected'}
-                </button>
-
-                <details className="relative">
-                  <summary className="list-none cursor-pointer select-none inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-sm bg-white hover:bg-gray-50">
-                    Choose…
-                  </summary>
-                  <div className="absolute z-10 mt-2 w-64 max-h-64 overflow-auto rounded-lg border bg-white shadow">
-                    <label className="flex items-center gap-2 px-3 py-2 border-b">
-                      <input type="checkbox" checked={allSelected} onChange={toggleAll} />
-                      <span className="text-sm">All</span>
-                    </label>
-                    {legalEntities.map((le) => {
-                      const checked = selectedLegalEntities.includes(le.id);
-                      return (
-                        <label key={le.id} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={(e) =>
-                              setSelectedLegalEntities((prev) =>
-                                e.target.checked ? [...prev, le.id] : prev.filter((id) => id !== le.id)
-                              )
-                            }
-                          />
-                          <span className="text-sm">{le.label}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </details>
-              </div>
-            </div>
-
-            <div>
-              <span className="block text-sm text-gray-700 mb-1">Levels</span>
-              <div className="flex items-center gap-2">
-                <input
-                  className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#2b6171]"
-                  placeholder="e.g. Junior"
-                  value={levelInput}
-                  onChange={(e) => setLevelInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addLevel())}
-                />
-                <button
-                  type="button"
-                  onClick={addLevel}
-                  className="rounded-lg bg-gray-100 hover:bg-gray-200 px-3 py-2 text-sm"
-                >
-                  + Add level
-                </button>
-              </div>
-
-              {levels.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {levels.map((lvl) => (
-                    <span key={lvl.id} className="inline-flex items-center gap-2 rounded-full bg-gray-100 px-3 py-1 text-xs">
-                      {lvl.label}
-                      <button className="text-gray-500 hover:text-gray-700" onClick={() => removeLevel(lvl.id)} title="Remove">
-                        ✕
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-3 rounded-lg bg-[#e6f0f3] text-[#245c65] px-3 py-2 text-xs">
-                Assign performance levels to roles, such as junior, mid, and senior.
-              </div>
-            </div>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={active}
+                onChange={(e) => setActive(e.target.checked)}
+              />
+              <span className="text-sm text-gray-700">Active</span>
+            </label>
           </div>
 
           <div className="px-4 py-3 bg-[#1f4d57]">
@@ -269,9 +174,12 @@ function CreateJobModal({ open, onClose, onCreated }) {
 }
 
 /* ------------ Page ------------ */
-const JobsPage = () => {
+const TeamsPageModol = () => {
   const [search, setSearch] = useState('');
   const [openCreate, setOpenCreate] = useState(false);
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
 
   // Alerts (top list)
   const alerts = [
@@ -280,13 +188,35 @@ const JobsPage = () => {
     '1 employee without a reporting line hierarchy',
   ];
 
-  // Demo rows (Role groups) – you can replace with API later
-  const seedRows = [
-    { id: 1, role: 'Devops',   members: 4,  avgAge: 20,  avgTenure: '2 years',  femalePct: 28, malePct: 72 },
-    { id: 2, role: 'Managers', members: 5,  avgAge: 28,  avgTenure: '10 years', femalePct: 25, malePct: 75 },
-    { id: 3, role: 'People',   members: 4,  avgAge: 'N/A', avgTenure: 'a year', femalePct: 62, malePct: 38 },
-  ];
-  const [rows, setRows] = useState(seedRows);
+  // Load from API
+  const loadJobs = async () => {
+    setLoading(true);
+    setErr('');
+    try {
+      // You registered: GET /job-titles/tenant/:tenantId/with-counts
+      const data = await getJSON(`${API_ORIGIN}/job-titles/tenant/${TENANT_ID}/with-counts`);
+      // Map to UI rows
+      const mapped = (Array.isArray(data) ? data : []).map((jt) => ({
+        id: jt.id,
+        role: jt.title_name,
+        members: Number(jt.employee_count || 0),
+        avgAge: 'N/A',          // not available from this endpoint yet
+        avgTenure: '—',         // not available from this endpoint yet
+        femalePct: 0,           // not available yet
+        malePct: 0,             // not available yet
+      }));
+      setRows(mapped);
+    } catch (e) {
+      setErr(e.message || 'Failed to load jobs');
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadJobs();
+  }, []);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -295,10 +225,10 @@ const JobsPage = () => {
   }, [search, rows]);
 
   const handleCreated = (job) => {
-    const name = job?.Name || job?.name || job?.Role || 'New Role';
+    // job is the object returned by POST /job-titles
     const newRow = {
-      id: job?.JobID || job?.id || Math.max(0, ...rows.map(r => r.id)) + 1,
-      role: name,
+      id: job?.id ?? Math.max(0, ...rows.map(r => r.id || 0)) + 1,
+      role: job?.title_name || job?.name || 'New Role',
       members: 0,
       avgAge: 'N/A',
       avgTenure: '—',
@@ -341,13 +271,24 @@ const JobsPage = () => {
                 + New job
               </button>
               <button
-                onClick={() => {/* import flow */}}
+                onClick={() => loadJobs()}
                 className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-[#2b6171] hover:bg-gray-50"
+                title="Reload"
               >
-                Import jobs in bulk
+                Reload
               </button>
             </div>
           </div>
+
+          {/* Errors / Loading */}
+          {err && (
+            <div className="mb-3 rounded-lg bg-red-50 text-red-700 px-3 py-2 text-sm">
+              {err}
+            </div>
+          )}
+          {loading && (
+            <div className="mb-3 text-sm text-gray-500">Loading…</div>
+          )}
 
           {/* Table */}
           <div className="overflow-x-auto">
@@ -385,11 +326,18 @@ const JobsPage = () => {
                     </td>
                   </tr>
                 ))}
+                {!loading && filtered.length === 0 && (
+                  <tr>
+                    <td className="py-6 px-3 text-sm text-gray-500" colSpan={6}>
+                      No results.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
 
-          {/* Footer / pagination */}
+          {/* Footer / pagination (static placeholder) */}
           <div className="mt-4 flex items-center justify-between">
             <button className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50">
               ← Previous
@@ -414,4 +362,5 @@ const JobsPage = () => {
   );
 };
 
-export default JobsPage;
+export default TeamsPageModol;
+ 

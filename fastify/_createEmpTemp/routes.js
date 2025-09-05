@@ -1,4 +1,4 @@
-import { createEmpTempController } from './controller.js';
+  import { createEmpTempController } from './controller.js';
 
 export default async function routes(fastify) {
   // Match your desired endpoint exactly:
